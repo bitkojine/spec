@@ -2,7 +2,8 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.26",
+  "version": "0.0.29",
+  "type": "module",
   "repository": {
     "type": "git",
     "url": "https://github.com/visualizer/code-3d-visualizer"
@@ -17,7 +18,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./dist/extension.js",
+  "main": "./dist/extension.cjs",
   "contributes": {
     "commands": [
       {
@@ -34,13 +35,13 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run compile",
-    "compile": "npm run lint && npm run check-specs && tsc -p ./ && node esbuild.ts",
+    "compile": "npm run lint && npm run check-specs && tsc -p ./ && node esbuild.mts",
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
-    "lint": "eslint src --ext .ts,.mts",
+    "lint": "eslint . --ext .ts,.js,.mts,.cts",
     "check-specs": "bash scripts/verify-specs.sh",
-    "test": "node ./out/test/runTest.js",
-    "test:stress": "STRESS_TEST=true node ./out/test/runTest.js",
+    "test": "node ./out/test/runTest.cjs",
+    "test:stress": "STRESS_TEST=true node ./out/test/runTest.cjs",
     "version:bump": "npm version patch --no-git-tag-version",
     "install:local": "npm run version:bump && rm -f *.vsix && vsce package --allow-missing-repository && code --install-extension *.vsix --force && code ."
   },

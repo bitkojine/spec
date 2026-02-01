@@ -1,12 +1,12 @@
 /**
- * @file workspace-manager.ts
+ * @file workspace-manager.cts
  * @description Coordinates scanning and parsing of the entire codebase.
  */
 
 import * as vscode from 'vscode';
-import { logger } from '../common/logger';
-import { FileParser } from './parser';
-import { Block } from '../common/contract';
+import { logger } from '../common/logger.cjs';
+import { FileParser } from './parser.cjs';
+import { Block } from '../common/contract.cjs';
 
 export class WorkspaceManager {
     private parser: FileParser;
@@ -33,9 +33,9 @@ export class WorkspaceManager {
             '**/.git/**'
         ];
         const excludePattern = `{${excludes.join(',')}}`;
-        const files = await vscode.workspace.findFiles('**/*.{ts,js}', excludePattern);
+        const files = await vscode.workspace.findFiles('**/*.{ts,js,cts,mts}', excludePattern);
         const total = files.length;
-        logger.info(`Found ${total} files to parse`);
+        logger.info(`Found ${total} files to parse`, { files: files.map(f => f.fsPath) });
 
         if (progress) {
             progress.report({ message: `Found ${total} files. Parsing...`, increment: 0 });

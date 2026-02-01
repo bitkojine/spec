@@ -48,6 +48,62 @@
             }
         ]
     },
+    "overrides": [
+        {
+            "files": [
+                "**/*.ts",
+                "**/*.js"
+            ],
+            "excludedFiles": [
+                "node_modules/**"
+            ],
+            "rules": {
+                "no-restricted-syntax": [
+                    "error",
+                    {
+                        "selector": "Program",
+                        "message": "TypeScript/JavaScript files must use .mts or .cts extensions to explicitly signal module type. See typescript/02-esm-mts-standard.md"
+                    }
+                ]
+            }
+        },
+        {
+            "files": [
+                "**/*.mts",
+                "**/*.cts"
+            ],
+            "rules": {
+                "@typescript-eslint/naming-convention": [
+                    "error",
+                    {
+                        "selector": "default",
+                        "format": [
+                            "camelCase",
+                            "PascalCase",
+                            "UPPER_CASE"
+                        ],
+                        "leadingUnderscore": "allow"
+                    }
+                ]
+            }
+        },
+        {
+            "files": [
+                "demo/**/*.mts",
+                "demo/**/*.cts",
+                "esbuild.mts"
+            ],
+            "parserOptions": {
+                "project": null
+            },
+            "rules": {
+                "@typescript-eslint/no-unsafe-assignment": "off",
+                "@typescript-eslint/no-unsafe-member-access": "off",
+                "@typescript-eslint/no-unsafe-call": "off",
+                "@typescript-eslint/no-unsafe-return": "off"
+            }
+        }
+    ],
     "ignorePatterns": [
         "out",
         "dist",

@@ -1,5 +1,5 @@
 /**
- * @file webview-template.ts
+ * @file webview-template.cts
  * @description Generates the HTML content for the 3D visualizer webview.
  */
 

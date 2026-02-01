@@ -1,12 +1,12 @@
 /**
- * @file webview-provider.ts
+ * @file webview-provider.cts
  * @description Manages the VSCode Webview lifecycle for the 3D panel.
  */
 
 import * as vscode from 'vscode';
-import { isWebviewMessage, VisualReportMessage, isExtensionMessage } from '../common/contract';
-import { logger } from '../common/logger';
-import { getWebviewContent } from './webview-template';
+import { isWebviewMessage, VisualReportMessage, isExtensionMessage } from '../common/contract.cjs';
+import { logger } from '../common/logger.cjs';
+import { getWebviewContent } from './webview-template.cjs';
 
 export class VisualizerWebviewProvider {
     private _lastVisualReport?: VisualReportMessage['payload'];

@@ -1,12 +1,12 @@
 /**
- * @file parser.ts
+ * @file parser.cts
  * @description Parses code files into 3D object metadata using robust pattern matching.
  */
 
 import * as vscode from 'vscode';
-import { Block, BlockType } from '../common/contract';
-import { logger } from '../common/logger';
-import { VisualizerError } from '../common/errors';
+import { Block, BlockType } from '../common/contract.cjs';
+import { logger } from '../common/logger.cjs';
+import { VisualizerError } from '../common/errors.cjs';
 
 export class FileParser {
     public async parse(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<Block[]> {

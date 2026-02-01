@@ -1,12 +1,13 @@
 /**
- * @file extension.e2e.test.ts
+ * @file extension.e2e.test.cts
  * @description E2E tests for the Code 3D Visualizer extension.
  * FOLLOWING: testing/01-bug-first-tests.md and testing/02-real-dependencies-only.md.
  */
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { VisualizerWebviewProvider } from '../extension/webview-provider';
+import { VisualizerWebviewProvider } from '../extension/webview-provider.cjs';
+import { managedDelay } from '../common/utils.cjs';
 
 suite('Bug-First E2E Tests', function () {
     this.timeout(20000);
@@ -56,10 +57,10 @@ suite('Bug-First E2E Tests', function () {
         const api = await ext!.activate();
         const provider = api.provider;
 
-        // Open a file from the workspace (using AuthService.ts from demo as a real dependency)
-        const files = await vscode.workspace.findFiles('**/AuthService.ts');
+        // Open a file from the workspace (using AuthService.mts from demo as a real dependency)
+        const files = await vscode.workspace.findFiles('**/AuthService.mts');
         if (files.length === 0) {
-            assert.fail("AuthService.ts not found in workspace");
+            assert.fail("AuthService.mts not found in workspace");
         }
         const doc = await vscode.workspace.openTextDocument(files[0]);
         await vscode.window.showTextDocument(doc);
@@ -74,7 +75,7 @@ suite('Bug-First E2E Tests', function () {
                 pixelsDetected = true;
                 break;
             }
-            await new Promise(r => setTimeout(r, 1000));
+            await managedDelay(1000);
         }
 
         assert.ok(pixelsDetected, "Webview should report that pixels were rendered in the 3D scene");

@@ -1,5 +1,5 @@
 /**
- * @file errors.ts
+ * @file errors.cts
  * @description Domain-specific error types for the extension.
  * Following reliability/01-error-handling.md.
  */

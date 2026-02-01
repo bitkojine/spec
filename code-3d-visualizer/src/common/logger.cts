@@ -1,10 +1,10 @@
 /**
- * @file logger.ts
+ * @file logger.cts
  * @description Implements structured logging following logging/01-logging-standards.md.
  */
 
 import * as vscode from 'vscode';
-import { Severity } from './contract';
+import { Severity } from './contract.cjs';
 
 export interface LogEntry {
     timestamp: string;

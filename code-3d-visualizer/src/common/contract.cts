@@ -1,5 +1,5 @@
 /**
- * @file contract.ts
+ * @file contract.cts
  * @description Defines the formal interface between the VSCode Extension and the Webview.
  * Following architecture/01-contracts.md.
  */

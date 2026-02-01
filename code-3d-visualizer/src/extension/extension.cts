@@ -1,15 +1,15 @@
 /**
- * @file extension.ts
+ * @file extension.cts
  * @description Entry point for the VSCode extension.
  */
 
 import * as vscode from 'vscode';
-import { logger } from '../common/logger';
-import { VisualizerWebviewProvider } from './webview-provider';
-import { FileParser } from './parser';
-import { VisualizerError } from '../common/errors';
-import { ExtensionToWebviewMessage } from '../common/contract';
-import { WorkspaceManager } from './workspace-manager';
+import { logger } from '../common/logger.cjs';
+import { VisualizerWebviewProvider } from './webview-provider.cjs';
+import { FileParser } from './parser.cjs';
+import { VisualizerError } from '../common/errors.cjs';
+import { ExtensionToWebviewMessage } from '../common/contract.cjs';
+import { WorkspaceManager } from './workspace-manager.cjs';
 
 let currentPanel: vscode.WebviewPanel | undefined = undefined;
 

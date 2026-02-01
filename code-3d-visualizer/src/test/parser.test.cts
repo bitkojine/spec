@@ -1,13 +1,13 @@
 /**
- * @file parser.test.ts
+ * @file parser.test.cts
  * @description Bug-first tests for FileParser.
  * Following testing/01-bug-first-tests.md and testing/02-real-dependencies-only.md.
  */
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { FileParser } from '../extension/parser';
-import { VisualizerError } from '../common/errors';
+import { FileParser } from '../extension/parser.cjs';
+import { VisualizerError } from '../common/errors.cjs';
 
 suite('FileParser Bug-First Tests', () => {
     const parser = new FileParser();
@@ -56,11 +56,11 @@ suite('FileParser Bug-First Tests', () => {
         try {
             await parser.parse(doc, cts.token);
             assert.fail("Should have thrown CANCELLATION_REQUESTED");
-        } catch (error) {
+        } catch (error: unknown) {
             if (error instanceof VisualizerError) {
                 assert.strictEqual(error.code, "CANCELLATION_REQUESTED");
             } else {
-                assert.fail("Error should be an instance of VisualizerError");
+                assert.fail(`Error should be an instance of VisualizerError. Found: ${error}`);
             }
         }
     });

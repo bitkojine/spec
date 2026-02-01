@@ -3,7 +3,7 @@ export class User {
     public name: string = "";
     public email: string = "";
 
-    public static fromJson(json: string): User {
+    public static fromJson( _json: string): User {
         const u = new User();
         // logic here
         return u;

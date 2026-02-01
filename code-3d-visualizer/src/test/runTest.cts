@@ -1,3 +1,7 @@
+/**
+ * @file runTest.cts
+ * @description Bootstrap script for running extension integration tests.
+ */
 import * as path from 'path';
 import { runTests } from '@vscode/test-electron';
 
@@ -9,7 +13,7 @@ async function main(): Promise<void> {
 
         // The path to test runner
         // Passed to --extensionTestsPath
-        const extensionTestsPath = path.resolve(__dirname, './index');
+        const extensionTestsPath = path.resolve(__dirname, './index.cjs');
 
         // Download VS Code, unzip it and run the integration test
         const workspacePath = process.env.STRESS_TEST ? extensionDevelopmentPath : path.resolve(extensionDevelopmentPath, 'demo');
@@ -20,7 +24,8 @@ async function main(): Promise<void> {
             launchArgs: [workspacePath]
         });
     } catch (err) {
-        console.error('Failed to run tests');
+        // eslint-disable-next-line no-console
+        console.error('Failed to run tests', err);
         process.exit(1);
     }
 }
