@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "repository": {
     "type": "git",
     "url": "https://github.com/visualizer/code-3d-visualizer"
@@ -34,9 +34,9 @@
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
-    "compile": "node esbuild.js",
-    "watch": "node esbuild.js --watch",
-    "package": "node esbuild.js --production",
+    "compile": "ts-node esbuild.ts",
+    "watch": "ts-node esbuild.ts --watch",
+    "package": "ts-node esbuild.ts --production",
     "test-compile": "tsc -p ./",
     "pretest": "npm run test-compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -58,6 +58,7 @@
     "eslint": "^8.56.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "dependencies": {
