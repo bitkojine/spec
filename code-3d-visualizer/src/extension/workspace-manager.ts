@@ -60,11 +60,10 @@ export class WorkspaceManager {
                     const objects = await this.parser.parse(document, token);
                     logger.debug(`File ${fileUri.fsPath} parsed. Objects found: ${objects.length}`);
 
-                    const fileIndex = files.indexOf(fileUri);
                     // Distribute files in a spiral as well to keep them centered around spawn
-                    const islandScale = 8; // Much tighter clustering
-                    const islandRadius = islandScale * Math.sqrt(fileIndex);
-                    const islandAngle = fileIndex * 2.4;
+                    const islandScale = 15; // Increased spacing between files
+                    const islandRadius = islandScale * Math.sqrt(files.indexOf(fileUri));
+                    const islandAngle = files.indexOf(fileUri) * 2.4;
 
                     const islandX = Math.round(islandRadius * Math.cos(islandAngle));
                     const islandZ = Math.round(islandRadius * Math.sin(islandAngle));

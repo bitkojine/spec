@@ -12,62 +12,57 @@ export class FileParser {
     public async parse(document: vscode.TextDocument, token: vscode.CancellationToken): Promise<Block[]> {
         const text = document.getText();
         const lines = text.split('\n');
+        const objects: Block[] = [];
 
-        return new Promise((resolve, reject) => {
-            const objects: Block[] = [];
-            let currentLine = 0;
+        for (let i = 0; i < lines.length; i++) {
+            if (token.isCancellationRequested) {
+                throw new VisualizerError("CANCELLATION_REQUESTED", "Parsing cancelled", true);
+            }
 
-            const parseBatch = () => {
-                if (token.isCancellationRequested) {
-                    return reject(new VisualizerError("CANCELLATION_REQUESTED", "Parsing cancelled", true));
-                }
+            // Yield to the event loop every 200 lines to keep UI responsive without unmanaged timers
+            if (i > 0 && i % 200 === 0) {
+                await new Promise(resolve => process.nextTick(resolve));
+            }
 
-                const endLine = Math.min(currentLine + 200, lines.length);
-                for (let i = currentLine; i < endLine; i++) {
-                    const line = lines[i].trim();
-                    if (!line || line.startsWith('//') || line.startsWith('*')) continue;
+            const line = lines[i].trim();
+            if (!line || line.startsWith('//') || line.startsWith('*')) continue;
 
-                    // 1. Classes & Interfaces
-                    const classMatch = line.match(/\b(class|abstract\s+class|interface|enum)\s+(\w+)/);
-                    if (classMatch) {
-                        objects.push(this.createObject(classMatch[2], 'class', objects.length));
-                        continue;
-                    }
+            // 1. Classes, Interfaces, Enums (including exported)
+            const classMatch = line.match(/\b(export\s+)?(class|abstract\s+class|interface|enum)\s+(\w+)/);
+            if (classMatch) {
+                logger.debug(`Matched Class: ${classMatch[3]}`, { line });
+                objects.push(this.createObject(classMatch[3], 'class', objects.length));
+                continue;
+            }
 
-                    // 2. Named Functions
-                    const funcMatch = line.match(/\bfunction\*?\s+(\w+)/);
-                    if (funcMatch) {
-                        objects.push(this.createObject(funcMatch[1], 'function', objects.length));
-                        continue;
-                    }
+            // 2. Named Functions (including exported and async)
+            const funcMatch = line.match(/\b(export\s+)?(async\s+)?function\*?\s+(\w+)/);
+            if (funcMatch) {
+                logger.debug(`Matched Fun: ${funcMatch[3]}`, { line });
+                objects.push(this.createObject(funcMatch[3], 'function', objects.length));
+                continue;
+            }
 
-                    // 3. Arrow Functions & Const Assignments
-                    const constMatch = line.match(/\b(const|let|var)\s+(\w+)\s*=\s*(async\s+)?(\(.*\)|[\w$]+)\s*=>/) ||
-                        line.match(/\b(const|let|var)\s+(\w+)\s*=\s*function/);
-                    if (constMatch) {
-                        objects.push(this.createObject(constMatch[2], 'function', objects.length));
-                        continue;
-                    }
+            // 3. Arrow Functions & Const Assignments (including exported)
+            const constMatch = line.match(/\b(export\s+)?(const|let|var)\s+(\w+)\s*=\s*(async\s+)?(\(.*\)|[\w$]+)\s*=>/) ||
+                line.match(/\b(export\s+)?(const|let|var)\s+(\w+)\s*=\s*function/);
+            if (constMatch) {
+                logger.debug(`Matched Arrow/Const: ${constMatch[3]}`, { line });
+                objects.push(this.createObject(constMatch[3], 'function', objects.length));
+                continue;
+            }
 
-                    // 4. Methods (inside classes)
-                    const methodMatch = line.match(/\b(public|private|protected|static)\s+(async\s+)?(\w+)\s*\(/);
-                    if (methodMatch) {
-                        objects.push(this.createObject(methodMatch[3], 'function', objects.length));
-                        continue;
-                    }
-                }
+            // 4. Methods (implicit or explicit visibility)
+            const methodMatch = line.match(/\b(public|private|protected|static|async)?\s*(async\s+)?(\w+)\s*\(/);
+            if (methodMatch && !['if', 'for', 'while', 'switch', 'catch'].includes(methodMatch[3])) {
+                logger.debug(`Matched Method: ${methodMatch[3]}`, { line });
+                objects.push(this.createObject(methodMatch[3], 'function', objects.length));
+                continue;
+            }
+        }
 
-                currentLine = endLine;
-                if (currentLine < lines.length) {
-                    setTimeout(parseBatch, 0);
-                } else {
-                    logger.debug("Parsing completed", { fileName: document.fileName, objectCount: objects.length });
-                    resolve(objects);
-                }
-            };
-
-            parseBatch();
-        });
+        logger.debug("Parsing completed", { fileName: document.fileName, objectCount: objects.length });
+        return objects;
     }
 
     private createObject(name: string, type: "class" | "function", blockIndex: number): Block {

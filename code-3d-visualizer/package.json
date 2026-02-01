@@ -38,7 +38,7 @@
     "watch": "ts-node esbuild.ts --watch",
     "package": "ts-node esbuild.ts --production",
     "test-compile": "tsc -p ./",
-    "pretest": "npm run test-compile && npm run lint",
+    "pretest": "npm run compile && npm run test-compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "test:stress": "STRESS_TEST=true node ./out/test/runTest.js",

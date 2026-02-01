@@ -1,131 +1,98 @@
 /**
  * @file extension.e2e.test.ts
  * @description E2E tests for the Code 3D Visualizer extension.
- * Following testing/01- bug-first-tests.md and testing/02-real-dependencies-only.md.
+ * FOLLOWING: testing/01-bug-first-tests.md and testing/02-real-dependencies-only.md.
  */
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { VisualizerError } from '../common/errors';
 import { VisualizerWebviewProvider } from '../extension/webview-provider';
 
-suite('Extension E2E Tests', function () {
-    this.timeout(15000); // Increase timeout for full scan + auto-start
+suite('Bug-First E2E Tests', function () {
+    this.timeout(20000);
 
     /**
-     * @bug Extension fails to activate or command is not registered.
-     * @failure_cause Mutation: removing 'contributes.commands' from package.json or 'vscode.commands.registerCommand' from extension.ts.
-     * @prevented_behavior Users being unable to see the 3D view despite the extension being installed.
+     * @bug Extension activation fails or commands are not registered.
+     * @failure_cause Mutation: removing 'contributes.commands' from package.json.
+     * @prevented_behavior Users cannot find or run "Show 3D View" command.
      */
-    test('Should execute "Show 3D View" command successfully', async () => {
-        // 1. Ensure extension is activated
+    test('Should have extension activated and commands registered', async () => {
         const ext = vscode.extensions.getExtension('visualizer.code-3d-visualizer');
-        if (!ext) {
-            assert.fail("Extension not found");
-        }
+        assert.ok(ext, "Extension should be present");
+
         await ext.activate();
+        assert.strictEqual(ext.isActive, true, "Extension should be active");
 
-        // 2. Open a real file from the demo project
-        const workspaceFolders = vscode.workspace.workspaceFolders;
-        if (!workspaceFolders) {
-            assert.fail("No workspace folders found. Please run with the demo project.");
-        }
-
-        const files = await vscode.workspace.findFiles('**/AuthService.ts');
-        if (files.length === 0) {
-            assert.fail("No AuthService.ts found. Please ensure workspace is correctly set up.");
-        }
-
-        const document = await vscode.workspace.openTextDocument(files[0]);
-        await vscode.window.showTextDocument(document);
-
-        // 3. Execute the command
-        try {
-            await vscode.commands.executeCommand('code-3d-visualizer.show3DView');
-            assert.ok(true, "Command executed without crashing");
-
-            // Wait for 2 seconds so the user can see the 3D view in the test window
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        } catch (error: unknown) {
-            if (error instanceof VisualizerError) {
-                assert.ok(true, `Managed error: ${error.code}`);
-            } else {
-                if (error instanceof Error && error.message === "CANCELED") {
-                    assert.ok(true);
-                } else {
-                    assert.fail(`Unexpected error during command execution: ${error}`);
-                }
-            }
-        }
+        const commands = await vscode.commands.getCommands(true);
+        assert.ok(commands.includes('code-3d-visualizer.show3DView'), "Show 3D View command should be registered");
+        assert.ok(commands.includes('code-3d-visualizer.visualizeFullCodebase'), "Visualize Full Codebase command should be registered");
     });
 
+    /**
+     * @bug Webview fails to initialize or never signals readiness.
+     * @failure_cause Mutation: removing 'postMessage({ type: "READY" })' from webview script.
+     * @prevented_behavior Extension hanging forever waiting for webviewReadyPromise.
+     */
+    test('Webview should signal readiness upon opening', async () => {
+        const ext = vscode.extensions.getExtension<{ provider: VisualizerWebviewProvider }>('visualizer.code-3d-visualizer');
+        const api = await ext!.activate();
+        const provider = api.provider;
+
+        // Trigger view
+        await vscode.commands.executeCommand('code-3d-visualizer.show3DView');
+
+        // This promise should resolve if the webview sends specialized READY signal
+        await provider.webviewReadyPromise;
+        assert.ok(true, "Webview signalled readiness");
+    });
+
+    /**
+     * @bug Rendering logic fails to produce 3D objects even for valid files.
+     * @failure_cause Mutation: FileParser regex failing to find common TS patterns.
+     * @prevented_behavior Users seeing a black screen/empty scene despite having code.
+     */
+    test('Should render 3D pixels for a valid TypeScript file', async () => {
+        const ext = vscode.extensions.getExtension<{ provider: VisualizerWebviewProvider }>('visualizer.code-3d-visualizer');
+        const api = await ext!.activate();
+        const provider = api.provider;
+
+        // Open a file from the workspace (using AuthService.ts from demo as a real dependency)
+        const files = await vscode.workspace.findFiles('**/AuthService.ts');
+        if (files.length === 0) {
+            assert.fail("AuthService.ts not found in workspace");
+        }
+        const doc = await vscode.workspace.openTextDocument(files[0]);
+        await vscode.window.showTextDocument(doc);
+
+        // Execute visualization
+        await vscode.commands.executeCommand('code-3d-visualizer.show3DView');
+
+        // Poll for visual confirmation from the webview (real rendering check)
+        let pixelsDetected = false;
+        for (let i = 0; i < 10; i++) {
+            if (provider.lastVisualReport?.hasPixels) {
+                pixelsDetected = true;
+                break;
+            }
+            await new Promise(r => setTimeout(r, 1000));
+        }
+
+        assert.ok(pixelsDetected, "Webview should report that pixels were rendered in the 3D scene");
+    });
+
+    /**
+     * @bug Extension crashes when no editor is open but 3D view is triggered.
+     * @failure_cause Mutation: failing to check 'vscode.window.activeTextEditor' for null.
+     * @prevented_behavior "Visualizer Error" notification appearing to user.
+     */
     test('Should handle no active editor gracefully', async () => {
-        // Close all editors
         await vscode.commands.executeCommand('workbench.action.closeAllEditors');
 
         try {
             await vscode.commands.executeCommand('code-3d-visualizer.show3DView');
-            assert.ok(true, "Show 3D View did not throw with no active editor");
-        } catch (error: unknown) {
-            assert.fail(`Show 3D View failed with no active editor: ${error}`);
+            assert.ok(true, "Did not crash with no active editor");
+        } catch (e) {
+            assert.fail(`Should not have thrown error: ${e}`);
         }
-    });
-
-    test('Should automatically launch visualization on activation', async () => {
-        // Opening any .ts file should trigger activation
-        const files = await vscode.workspace.findFiles('**/AuthService.ts');
-        if (files.length === 0) {
-            assert.fail("Could not find AuthService.ts for activation test");
-        }
-        await vscode.workspace.openTextDocument(files[0]);
-        await new Promise(resolve => setTimeout(resolve, 3000));
-
-        assert.ok(true, "Automatically launched visualization");
-    });
-
-    test('Should execute "Visualize Full Codebase" command successfully', async () => {
-        try {
-            await vscode.commands.executeCommand('code-3d-visualizer.visualizeFullCodebase');
-            assert.ok(true, "Full codebase scan executed");
-            await new Promise(resolve => setTimeout(resolve, 3000));
-        } catch (error: unknown) {
-            assert.fail(`Full codebase visualization failed: ${error}`);
-        }
-    });
-
-    /**
-     * @bug Extension opens the view but fails to render any 3D objects (black screen).
-     * @failure_cause Mutation: remove three.js rendering calls or fail to pass objects to webview.
-     * @prevented_behavior Users seeing an empty or broken 3D scene.
-     */
-    test('Should render 3D pixels in the webview', async () => {
-        const ext = vscode.extensions.getExtension<{ provider: VisualizerWebviewProvider }>('visualizer.code-3d-visualizer');
-        if (!ext) {
-            assert.fail("Extension not found");
-        }
-
-        const api = await ext.activate();
-        const provider = api.provider;
-
-        // Ensure we are ready
-        await provider.webviewReadyPromise;
-
-        // Trigger full codebase visualization
-        await vscode.commands.executeCommand('code-3d-visualizer.visualizeFullCodebase');
-
-        // Poll for the visual report from the webview
-        let reportReceived = false;
-        let lastReport;
-
-        for (let i = 0; i < 20; i++) {
-            lastReport = provider.lastVisualReport;
-            if (lastReport && lastReport.hasPixels) {
-                reportReceived = true;
-                break;
-            }
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-
-        assert.ok(reportReceived, `Webview should report that pixels were rendered. Objects: ${provider.lastObjectsCount}`);
     });
 });

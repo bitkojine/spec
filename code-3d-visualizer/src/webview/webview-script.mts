@@ -356,7 +356,6 @@ function runVisualCheck() {
         // rudimentary check
         if (Math.abs(r - 135) > 10) {
             coloredPixels++;
-            if (coloredPixels > 100) break;
         }
     }
 
