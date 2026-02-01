@@ -1,0 +1,17 @@
+
+.vscode/**
+.vscode-test/**
+out/**
+src/**
+.gitignore
+.eslintrc.json
+tsconfig.json
+package-lock.json
+package.json
+vsc-extension-quickstart.md
+README.md
+**/*.js.map
+**/*.ts
+**/*.test.ts
+node_modules/**
+esbuild.js

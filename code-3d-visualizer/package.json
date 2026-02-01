@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.11",
+  "version": "0.0.13",
   "repository": {
     "type": "git",
     "url": "https://github.com/visualizer/code-3d-visualizer"
@@ -17,7 +17,7 @@
   "activationEvents": [
     "onStartupFinished"
   ],
-  "main": "./out/extension/extension.js",
+  "main": "./dist/extension.js",
   "contributes": {
     "commands": [
       {
@@ -33,10 +33,12 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
+    "vscode:prepublish": "npm run package",
+    "compile": "node esbuild.js",
+    "watch": "node esbuild.js --watch",
+    "package": "node esbuild.js --production",
+    "test-compile": "tsc -p ./",
+    "pretest": "npm run test-compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "node ./out/test/runTest.js",
     "test:stress": "STRESS_TEST=true node ./out/test/runTest.js",
@@ -44,18 +46,19 @@
     "install:local": "npm run version:bump && rm -f *.vsix && vsce package --allow-missing-repository && code --install-extension *.vsix --force && code ."
   },
   "devDependencies": {
-    "@types/vscode": "^1.85.0",
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.6",
     "@types/node": "18.x",
+    "@types/three": "^0.160.0",
+    "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.19.1",
     "@typescript-eslint/parser": "^6.19.1",
+    "@vscode/test-electron": "^2.3.9",
+    "esbuild": "^0.27.2",
     "eslint": "^8.56.0",
     "glob": "^10.3.10",
     "mocha": "^10.2.0",
-    "typescript": "^5.3.3",
-    "@vscode/test-electron": "^2.3.9",
-    "@types/three": "^0.160.0"
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "three": "^0.160.0"
