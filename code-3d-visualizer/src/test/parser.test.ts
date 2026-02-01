@@ -36,8 +36,8 @@ suite('FileParser Bug-First Tests', () => {
         const results = await parser.parse(doc, cts.token);
 
         assert.strictEqual(results.length, 1);
-        assert.strictEqual(results[0].name, 'MyTestClass');
-        assert.strictEqual(results[0].type, 'class');
+        assert.strictEqual(results[0].metadata?.name, 'MyTestClass');
+        assert.strictEqual(results[0].type, 'class_block');
     });
 
     /**

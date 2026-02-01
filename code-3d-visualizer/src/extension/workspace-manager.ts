@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { logger } from '../common/logger';
 import { FileParser } from './parser';
-import { CodeObject3D } from '../common/contract';
+import { Block } from '../common/contract';
 
 export class WorkspaceManager {
     private parser: FileParser;
@@ -22,7 +22,7 @@ export class WorkspaceManager {
         token: vscode.CancellationToken,
         progress?: vscode.Progress<{ message?: string; increment?: number }>,
         onProgressMessage?: (msg: string, increment: number, current: number, total: number) => void
-    ): Promise<CodeObject3D[]> {
+    ): Promise<Block[]> {
         logger.info("Starting codebase scan");
 
         const excludes = [
@@ -44,7 +44,7 @@ export class WorkspaceManager {
             onProgressMessage(`Found ${total} files.`, 0, 0, total);
         }
 
-        const allObjects: CodeObject3D[] = [];
+        const allObjects: Block[] = [];
         const batchSize = 5;
 
         for (let i = 0; i < total; i += batchSize) {
@@ -61,17 +61,28 @@ export class WorkspaceManager {
                     logger.debug(`File ${fileUri.fsPath} parsed. Objects found: ${objects.length}`);
 
                     const fileIndex = files.indexOf(fileUri);
-                    return objects.map(obj => ({
+                    // Distribute files in a spiral as well to keep them centered around spawn
+                    const islandScale = 8; // Much tighter clustering
+                    const islandRadius = islandScale * Math.sqrt(fileIndex);
+                    const islandAngle = fileIndex * 2.4;
+
+                    const islandX = Math.round(islandRadius * Math.cos(islandAngle));
+                    const islandZ = Math.round(islandRadius * Math.sin(islandAngle));
+
+                    // This map is creating nested arrays if we are not careful
+                    // `objects` is Block[]
+                    return objects.map((obj) => ({
                         ...obj,
                         position: {
-                            x: obj.position.x + (fileIndex % 10) * 30,
+                            x: obj.position.x + islandX,
                             y: obj.position.y,
-                            z: obj.position.z + Math.floor(fileIndex / 10) * 30
+                            z: obj.position.z + islandZ
                         }
                     }));
                 } catch (error) {
                     logger.error(`Failed to parse ${fileUri.fsPath}`, { error });
-                    return [];
+                    // Return empty array on error, flattened later
+                    return [] as Block[];
                 }
             });
 

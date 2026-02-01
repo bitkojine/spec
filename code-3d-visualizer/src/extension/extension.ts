@@ -16,7 +16,7 @@ let currentPanel: vscode.WebviewPanel | undefined = undefined;
 export async function activate(context: vscode.ExtensionContext): Promise<{ provider: VisualizerWebviewProvider }> {
     logger.info("Code 3D Visualizer Activated");
 
-    const provider = new VisualizerWebviewProvider();
+    const provider = new VisualizerWebviewProvider(context.extensionUri);
     const parser = new FileParser();
     const workspaceManager = new WorkspaceManager();
 
@@ -63,7 +63,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
             const message: ExtensionToWebviewMessage = {
                 type: "UPDATE_SCENE",
                 payload: {
-                    objects,
+                    blocks: objects,
                     originFile: editor.document.fileName
                 }
             };
@@ -115,7 +115,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
                 const message: ExtensionToWebviewMessage = {
                     type: "UPDATE_SCENE",
                     payload: {
-                        objects,
+                        blocks: objects, // objects is actually Block[] now due to workspace-manager return type update
                         originFile: "Full Workspace"
                     }
                 };

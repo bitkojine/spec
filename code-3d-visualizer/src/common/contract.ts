@@ -16,19 +16,23 @@ export interface LogMessage {
     };
 }
 
-export interface CodeObject3D {
+export type BlockType = 'grass' | 'dirt' | 'stone' | 'wood' | 'leaf' | 'cloud' | 'class_block' | 'function_block' | 'variable_block';
+
+export interface Block {
     id: string;
-    name: string;
-    type: "class" | "function" | "variable";
+    type: BlockType;
     position: { x: number; y: number; z: number };
-    scale: { x: number; y: number; z: number };
-    color: string;
+    metadata?: {
+        name: string;
+        originalType?: string;
+    };
+    color?: number; // Optional override (Hex)
 }
 
 export interface UpdateSceneMessage {
     type: "UPDATE_SCENE";
     payload: {
-        objects: CodeObject3D[];
+        blocks: Block[];
         originFile: string;
     };
 }
