@@ -27,6 +27,18 @@
         "@typescript-eslint/no-unsafe-member-access": "error",
         "@typescript-eslint/no-unsafe-call": "error",
         "@typescript-eslint/no-unsafe-return": "error",
+        "no-console": "error",
+        "no-restricted-globals": [
+            "error",
+            {
+                "name": "setTimeout",
+                "message": "Use a managed scheduling service or AbortSignal-aware delay instead. See concurrency/01-async-safety.md"
+            },
+            {
+                "name": "setInterval",
+                "message": "Use a managed scheduling service instead. See concurrency/01-async-safety.md"
+            }
+        ],
         "max-lines": [
             "error",
             {
