@@ -1,5 +1,5 @@
 export class AuthService {
-    constructor(private readonly database: any) { }
+    constructor(private readonly database: unknown) { }
 
     public async login(user: string): Promise<boolean> {
         console.log("Logging in", user);
