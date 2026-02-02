@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.29",
+  "version": "0.0.30",
   "type": "module",
   "repository": {
     "type": "git",
@@ -39,7 +39,7 @@
     "watch": "tsc -watch -p ./",
     "pretest": "npm run compile",
     "lint": "eslint . --ext .ts,.js,.mts,.cts",
-    "check-specs": "bash scripts/verify-specs.sh",
+    "check-specs": "node scripts/verify-specs.mts",
     "test": "node ./out/test/runTest.cjs",
     "test:stress": "STRESS_TEST=true node ./out/test/runTest.cjs",
     "version:bump": "npm version patch --no-git-tag-version",

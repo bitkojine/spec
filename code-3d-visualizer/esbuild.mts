@@ -70,6 +70,7 @@ async function main() {
 }
 
 main().catch(e => {
+    // Disabling no-console because this is the build entry point and errors must be visible in the terminal.
     // eslint-disable-next-line no-console
     console.error(e);
     process.exit(1);
