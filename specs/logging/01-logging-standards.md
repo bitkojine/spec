@@ -1,132 +1,77 @@
 # Logging Standards Engineering Specification
 
-## 1. Overview
+## 1. Purpose & Scope
 
-This specification establishes a strict policy for logging within production-quality software systems. The primary objective is to ensure that all runtime diagnostic information is structured, searchable, and actionable, while minimizing operational, security, and performance risks associated with ad-hoc logging mechanisms.
+This specification establishes the mandatory standards for application logging within the codebase. The primary objective is to ensure high observability, security, and operational reliability by mandating structured logging and centralized ingestion into the **ELK stack (Elasticsearch, Logstash, Kibana)**.
 
-Ad-hoc logging (e.g., `console.log`, `print`, `stdout`) is prohibited in production code paths because it lacks the structure required for automated analysis, often bypasses security redaction layers, and can cause performance bottlenecks or storage exhaustion in high-throughput environments.
+Ad-hoc console output is strictly prohibited in production environments. All diagnostic data MUST be emitted through standardized, machine-readable interfaces to enable automated monitoring, alerting, and long-term auditability.
 
-## 2. Applicability
+## 2. Definitions
 
-This specification applies to all production software, supporting infrastructure, and automated coding agents operating within the organization. All new code MUST comply with these standards, and existing codebases SHOULD be migrated according to the timeline defined in Section 9.
+*   **Console Logging**: Direct output to system streams (`stdout`, `stderr`) or browser-specific consoles using primitives like `console.log`, `print`, `fmt.Println`, or equivalent language statements.
+*   **Structured Logging**: A logging methodology where messages are emitted as machine-readable data structures (typically JSON) rather than plain text strings, containing consistent metadata fields.
+*   **Centralized Logging**: The process of aggregating logs from all distributed components into a unified system (the ELK stack) for storage, indexing, and analysis.
+*   **Log Violation**: Any instance of ad-hoc logging primitives remaining in production code paths or any log emitted that bypasses the approved centralized pipeline.
 
-## 3. Definitions
+## 3. Normative Requirements
 
-*   **Structured Logging**: A technique where logs are emitted as machine-readable data structures (typically JSON) rather than plain text strings.
-*   **Ad-hoc Logging**: Direct output to system streams (stdout/stderr) or browser consoles using language primitives like `console.log`, `print`, or `fmt.Println`.
-*   **Log Level**: A severity indicator (e.g., DEBUG, INFO, WARN, ERROR, FATAL) used to filter and prioritize log data.
-*   **Correlation ID**: A unique identifier attached to all logs within a single request or transaction flow to enable end-to-end tracing.
-*   **Log Aggregator**: A centralized system (e.g., ELK stack, Datadog, CloudWatch) that collects, indexes, and stores logs from multiple services.
+### 3.1. Prohibition of Ad-Hoc Output
+*   Developers MUST NOT use `console.log`, `console.info`, `console.warn`, `console.error`, or language-equivalent primitives (e.g., `print()`) for application logging.
+*   All such ad-hoc statements MUST be removed or replaced with approved logging interface calls before code is committed to the main branch.
 
-## 4. Normative Rules
+### 3.2. Centralized Ingestion (ELK)
+*   All application logs MUST be sent through approved logging interfaces that are configured to feed the ELK stack.
+*   Logs MUST NOT be written to local files only; they MUST be accessible via Kibana for production troubleshooting.
 
-### 4.1. Prohibition of Ad-hoc Logging
-*   Ad-hoc logging mechanisms MUST NOT be used in production code paths.
-*   Explicit calls to `console.log`, `console.info`, `console.warn`, `console.error`, and their language-specific equivalents (e.g., `print()`, `puts`) MUST be removed or replaced before deployment to production-equivalent environments.
+### 3.3. Log Structure and Levels
+*   **Format**: All logs MUST be emitted in a structured JSON format.
+*   **Standard Fields**: Every log entry MUST include:
+    *   `timestamp`: ISO 8601 format.
+    *   `level`: One of `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.
+    *   `service_id`: Unique identifier for the emitting service.
+    *   `correlation_id`: For tracing requests across distributed components.
+    *   `message`: A concise, human-readable summary.
+*   **Levels**:
+    *   `DEBUG`: Granular info for troubleshooting.
+    *   `INFO`: General operational events.
+    *   `WARN`: Non-critical issues that may require attention.
+    *   `ERROR`: Critical failures affecting specific operations.
+    *   `FATAL`: System-wide failures requiring immediate intervention.
 
-### 4.2. Mandatory Structured Logging Interface
-*   All runtime logs MUST be emitted through an approved logging library or interface.
-*   The output format MUST be JSON or an equivalent structured format supported by the organization's Log Aggregator.
-*   Every log entry MUST contain at least:
-    *   Timestamp (ISO 8601 format)
-    *   Log Level
-    *   Service/Component Name
-    *   Message (concise summary)
-    *   Contextual Data (relevant metadata)
+## 4. Allowed Exceptions
 
-### 4.3. Log Level Standards
-Loggers MUST support the following levels:
-*   **DEBUG**: Granular information for development and troubleshooting. SHOULD NOT be enabled in production by default.
-*   **INFO**: Significant operational events (e.g., service startup, successful transaction).
-*   **WARN**: Potentially harmful situations that do not halt execution.
-*   **ERROR**: Error events that prevent specific operations but allow the system to continue running.
-*   **FATAL**: Severe errors that cause the application or a critical component to terminate.
+While application code is strictly governed, the following exceptions apply:
 
-### 4.4. Tracing and Correlation
-*   Correlation IDs MUST be included in every log entry associated with a request or background task.
-*   The Correlation ID MUST be propagated through all downstream service calls.
+*   **Local Development Tooling**: Scripts or tools intended solely for local developer or workstation use (not deployed) MAY use console output for immediate feedback.
+*   **Test Runners**: CLI output from test runners (e.g., `jest`, `pytest`) is permitted to provide developer feedback during the CI process.
+*   **Build/CI Scripts**: Deployment and build automation scripts MAY use console output to report progress and status.
+*   **Isolation**: Any code using these exceptions MUST be physically isolated (e.g., in `tools/`, `scripts/`, or `*.test.ts`) and MUST NOT be imported into production runtime paths.
 
-### 4.5. Data Security and Privacy
-*   Sensitive data (e.g., PII, passwords, authentication tokens, credit card numbers) MUST NOT be logged.
-*   The logging infrastructure MUST implement automatic redaction or masking for known sensitive patterns.
+## 5. Enforcement & Verification
 
-## 5. Environment Distinctions
+### 5.1. Automated Enforcement
+*   **Linting**: Static analysis tools (e.g., ESLint `no-console` rule) MUST be configured to treat ad-hoc logging as a build-breaking error.
+*   **CI Checks**: The CI pipeline MUST scan for prohibited patterns (`console.\w+`, `print\(`) and fail the build if detected in production source directories.
 
-### 5.1. Production and Staging
-*   Compliance with this specification is MANDATORY.
-*   Log level SHOULD be set to `INFO` or higher.
-*   Logs MUST be forwarded to the centralized Log Aggregator.
+### 5.2. Verification
+*   **Code Review**: Reviewers MUST ensure that new logs provide adequate context/metadata and adhere to the structured format.
+*   **Observability Audit**: Periodically, logs in Kibana SHOULD be reviewed to ensure expected fields are present and searchable.
 
-### 5.2. Local Development
-*   Ad-hoc logging MAY be used temporarily for debugging during local development but MUST NOT be committed to the repository.
-*   Developers SHOULD use the structured logging interface even in local environments to ensure consistency.
-*   A "pretty-print" formatter MAY be used locally to transform structured JSON into human-readable text.
+## 6. Rationale & Trade-offs
 
-## 6. Enforcement Mechanisms
+### 6.1. Why Prohibit Console Logging?
+*   **Searchability**: Plain text console output is difficult to query across thousands of containers.
+*   **Correlation**: Centralized logging allows us to trace a single request through multiple microservices using a `correlation_id`.
+*   **Security**: Centralized pipelines can implement automated redaction of sensitive data (PII).
+*   **Performance**: Standardized loggers often use non-blocking, buffered I/O, whereas direct `stdout` writes can block execution.
 
-### 6.1. Static Analysis
-*   ESLint, Ruff, or equivalent linters MUST be configured to error on `console.log` and similar primitives.
-*   CI/CD pipelines MUST fail if prohibited logging patterns are detected.
+### 6.2. Operational Benefits
+*   **Alerting**: ELK enables automated alerts based on log patterns (e.g., error rate spikes).
+*   **Dashboards**: Kibana allows for real-time visualization of system health.
 
-### 6.2. CI/CD Checks
-*   Build pipelines MUST verify that the logging configuration for the target environment is present and valid.
+## 7. Non-Goals
 
-### 6.3. Code Review
-*   Reviewers MUST verify that logs provide sufficient context for troubleshooting without exposing sensitive information.
-*   Reviewers MUST reject any code containing ad-hoc logging primitives.
-
-## 7. Rationale
-
-### Observability
-Structured logs allow for complex queries, dashboards, and automated alerting. Text-based logs require expensive and fragile regex parsing, making them unsuitable for modern observability.
-
-### Security and Compliance
-Ad-hoc logging bypasses the audit trails and redaction filters built into central logging services. This significantly increases the risk of data leakage.
-
-### Performance
-Standardized logging libraries often utilize asynchronous I/O and buffering. Direct writes to `stdout` are blocking and can severely degrade performance under high load.
-
-## 8. Examples
-
-### 8.1. Non-Compliant Code
-```javascript
-// PROHIBITED: Ad-hoc logging to console
-function processOrder(order) {
-    console.log("Processing order: " + order.id);
-    if (!order.items) {
-        console.error("Order missing items!");
-        return;
-    }
-}
-```
-
-### 8.2. Compliant Code (Pseudocode)
-```javascript
-// COMPLIANT: Using structured logging interface
-const logger = require('./logger');
-
-function processOrder(order) {
-    logger.info("Processing order", {
-        order_id: order.id,
-        item_count: order.items.length,
-        correlation_id: getCorrelationId()
-    });
-
-    if (!order.items) {
-        logger.error("Order processing failed", {
-            reason: "MISSING_ITEMS",
-            order_id: order.id,
-            correlation_id: getCorrelationId()
-        });
-        return;
-    }
-}
-```
-
-## 9. Migration Guidance
-
-### 9.1. Deprecation Strategy
-1.  **Phase 1 (Immediate)**: All new code MUST use the structured logging interface.
-2.  **Phase 2**: Introduce linting rules as warnings in existing repositories.
-3.  **Phase 3**: Convert linting warnings to errors.
-4.  **Phase 4**: Automated refactoring (codemods) to replace simple print statements with structured logger calls where possible.
+This specification does **not** cover:
+*   The configuration details of the ELK stack or Logstash filters.
+*   The design of specific Kibana dashboards.
+*   Selection of specific logging libraries for individual languages (that is left to implementation guides).
