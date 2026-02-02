@@ -33,12 +33,13 @@ export class VisualizerWebviewProvider {
             } else if (data.type === "LOG") {
                 // Forward webview log to centralized extension logger
                 const { severity, message, context } = data.payload;
+                const enrichedContext = { ...context, source: "webview" };
                 switch (severity) {
-                    case "DEBUG": logger.debug(message, context); break;
-                    case "INFO": logger.info(message, context); break;
-                    case "WARN": logger.warn(message, context); break;
+                    case "DEBUG": logger.debug(message, enrichedContext); break;
+                    case "INFO": logger.info(message, enrichedContext); break;
+                    case "WARN": logger.warn(message, enrichedContext); break;
                     case "ERROR":
-                    case "FATAL": logger.error(message, context); break;
+                    case "FATAL": logger.error(message, enrichedContext); break;
                 }
             }
         } else if (isExtensionMessage(data)) {

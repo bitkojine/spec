@@ -15,19 +15,32 @@ export interface PerformancePayload {
 /**
  * Helper to measure the duration and resource impact of operations.
  */
+interface PerformanceMemory {
+    usedJSHeapSize: number;
+    totalJSHeapSize: number;
+    jsHeapSizeLimit: number;
+}
+
 export class PerformanceMetrics {
-    private startTime: number = 0;
+    private startTime?: number;
     private startMemory?: number;
+
+    private getMemory(): number | undefined {
+        if (typeof process !== 'undefined' && process.memoryUsage) {
+            return process.memoryUsage().heapUsed;
+        }
+        if (typeof performance !== 'undefined' && 'memory' in performance) {
+            return (performance as unknown as { memory: PerformanceMemory }).memory.usedJSHeapSize;
+        }
+        return undefined;
+    }
 
     /**
      * Starts a measurement.
      */
     public start(): void {
         this.startTime = performance.now();
-        // process.memoryUsage is only available in Node.js environments (Extension Host)
-        if (typeof process !== 'undefined' && process.memoryUsage) {
-            this.startMemory = process.memoryUsage().heapUsed;
-        }
+        this.startMemory = this.getMemory();
     }
 
     /**
@@ -37,15 +50,18 @@ export class PerformanceMetrics {
      * @param context - Additional metadata for the log.
      */
     public end(operation: string, context?: Record<string, unknown>): void {
-        const duration = performance.now() - this.startTime;
-        const payload: PerformancePayload = {
+        const duration = performance.now() - (this.startTime ?? performance.now());
+        const payload: Record<string, unknown> = {
             operation,
             duration,
             context
         };
 
-        if (this.startMemory !== undefined && typeof process !== 'undefined' && process.memoryUsage) {
-            payload.memoryDelta = process.memoryUsage().heapUsed - this.startMemory;
+        if (this.startMemory !== undefined) {
+            const currentMemory = this.getMemory();
+            if (currentMemory !== undefined) {
+                payload.memoryDelta = currentMemory - this.startMemory;
+            }
         }
 
         logger.info(`Performance: ${operation} completed in ${duration.toFixed(2)}ms`, { perf: payload });

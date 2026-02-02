@@ -113,6 +113,9 @@ vscode.forEach(api => api.postMessage({ type: 'READY' }));
 let prevTime = performance.now();
 let frameCount = 0;
 let lastFpsLog = performance.now();
+let startMem = typeof performance !== 'undefined' && 'memory' in performance
+    ? (performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize
+    : 0;
 
 function animate() {
     requestAnimationFrame(animate);
@@ -120,18 +123,25 @@ function animate() {
     const delta = (time - prevTime) / 1000;
     frameCount++;
 
-    // Track FPS every 5 seconds
-    if (time - lastFpsLog > 5000) {
+    // Track FPS every 1.5 seconds (high resolution for short tests)
+    if (time - lastFpsLog > 1500) {
         const fps = (frameCount * 1000) / (time - lastFpsLog);
+        const currentMem = typeof performance !== 'undefined' && 'memory' in performance
+            ? (performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize
+            : 0;
+        const memDelta = currentMem - startMem;
+
         logger.info(`Webview FPS: ${fps.toFixed(1)}`, {
             perf: {
                 operation: "WEBVIEW_FPS",
                 duration: 1000 / fps, // ms per frame
+                memoryDelta: memDelta,
                 context: { fps, frameCount }
             }
         });
         frameCount = 0;
         lastFpsLog = time;
+        startMem = currentMem;
     }
 
     inputManager.update(delta);
