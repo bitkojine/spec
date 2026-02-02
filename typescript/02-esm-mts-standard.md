@@ -63,29 +63,5 @@ ESLint is configured to error on any `.ts` or `.js` source files using the `no-r
 ### Bundler Compliance
 The bundler (e.g., `esbuild.mts`) MUST include a resolution plugin that handles the mapping from `.mjs`/`.cjs` imports to their respective `.mts`/`.cts` source files deterministically.
 
-## Preferred Patterns
-
-### Creating New Modules
-Always choose the explicit extension matching the target environment.
-```typescript
-// src/webview/3d-engine.mts (Browser/ESM)
-// src/extension/main.cts (Extension Host/CJS)
-```
-
-### Importing Modules
-Always refer to the compiled extension.
-```typescript
-import { helper } from "./helper.mjs"; // For .mts source
-import { config } from "./config.cjs"; // For .cts source
-```
-
-## Tooling & Enforcement
-
-### Compiler Configuration
-The `tsconfig.json` MUST be configured to enforce `Node16`/`NodeNext` resolution.
-
-### Bundler Compliance
-The bundler (e.g., `esbuild.ts`) MUST include a resolution plugin that handles the mapping from `.mjs`/`.cjs` imports to their respective `.mts`/`.cts` source files deterministically.
-
 ## Summary
 By standardizing on explicit extensions and a "Pure ESM" package identity, we achieve a robust, future-proof architecture that eliminates runtime module errors and aligns perfectly with modern engineering standards.
