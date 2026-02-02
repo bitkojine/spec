@@ -9,7 +9,9 @@ This project adopts **Explicit Extension Signaling**. By using `.mts` and `.cts`
 This codebase enforces the following standards for module management:
 
 - **REQUIRED: Explicit Signaling**: All TypeScript source files MUST use either the `.mts` or `.cts` extension. The use of the standard `.ts` extension is **PROHIBITED** to prevent ambiguity.
-    - **.mts**: Use for all browser-compatible or modern Node.js ESM code (e.g., Webview components, browser scripts).
+- **REQUIRED: Unified Language Stack**: All code in the repository, including build scripts, automation, and verification tools, MUST be written in TypeScript using `.mts` or `.cts`.
+    - The use of shell scripts (`.sh`, `.bash`, etc.) or other programming languages is **STRICTLY PROHIBITED**.
+    - **.mts**: Use for all browser-compatible or modern Node.js ESM code (e.g., Webview components, browser scripts, build scripts).
     - **.cts**: Use for code that must maintain CommonJS compatibility (e.g., VS Code Extension Host, CLI scripts, E2E tests).
 - **REQUIRED: Pure ESM Default**: The root `package.json` MUST include `"type": "module"`. This defines the project's primary identity as ESM.
 - **REQUIRED: Explicit Extensions**: All relative imports MUST include the explicit extension of the **compiled target**:
