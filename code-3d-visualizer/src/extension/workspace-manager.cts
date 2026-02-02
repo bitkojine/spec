@@ -58,16 +58,17 @@ export class WorkspaceManager {
                     }
 
                     const batch = files.slice(i, i + batchSize);
-                    const batchPromises = batch.map(async (fileUri) => {
+                    const batchPromises = batch.map(async (fileUri, batchIndex) => {
                         try {
                             const document = await vscode.workspace.openTextDocument(fileUri);
                             const objects = await this.parser.parse(document, token);
                             logger.debug(`File ${fileUri.fsPath} parsed. Objects found: ${objects.length}`);
 
                             // Distribute files in a spiral as well to keep them centered around spawn
+                            const fileGlobalIndex = i + batchIndex;
                             const islandScale = 15; // Increased spacing between files
-                            const islandRadius = islandScale * Math.sqrt(files.indexOf(fileUri));
-                            const islandAngle = files.indexOf(fileUri) * 2.4;
+                            const islandRadius = islandScale * Math.sqrt(fileGlobalIndex);
+                            const islandAngle = fileGlobalIndex * 2.4;
 
                             const islandX = Math.round(islandRadius * Math.cos(islandAngle));
                             const islandZ = Math.round(islandRadius * Math.sin(islandAngle));
