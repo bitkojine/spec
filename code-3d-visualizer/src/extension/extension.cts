@@ -60,6 +60,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
 
         const cts = new vscode.CancellationTokenSource();
         try {
+            await provider.webviewReadyPromise;
             await taskTracker.track("Show 3D View", (async () => {
                 const objects = await parser.parse(editor.document, cts.token);
 
