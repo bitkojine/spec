@@ -16,46 +16,240 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
                 <meta name="viewport" content="width=device-width, initial-scale=1.0">
                 <title>3D Code World</title>
                 <style>
-                    body { margin: 0; overflow: hidden; background: #87CEEB; color: #fff; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; user-select: none; }
-                    canvas { width: 100vw; height: 100vh; display: block; }
-                    #overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
-                    #info-box { background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); padding: 15px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.2); width: fit-content; max-width: 400px; }
-                    #title { font-size: 16px; font-weight: 700; margin-bottom: 5px; color: #fff; text-shadow: 1px 1px 2px black; }
-                    #status { font-size: 13px; color: #eee; margin-bottom: 15px; }
-                    #controls-hint { margin-top: 10px; font-size: 12px; color: #ddd; background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; }
-                    .key { background: #fff; color: #333; padding: 2px 6px; border-radius: 3px; font-weight: bold; font-family: monospace; }
-                    #blocker { position: absolute; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; pointer-events: auto; z-index: 10; }
-                    #instructions { font-size: 36px; color: white; text-align: center; cursor: pointer; }
-                    #progress-container { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; display: none; margin-top: 10px; }
-                    #progress-bar { width: 0%; height: 100%; background: #44ff44; transition: width 0.3s ease; }
-                    #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); pointer-events: none; }
-                    #crosshair::before, #crosshair::after { content: ''; position: absolute; background: rgba(255, 255, 255, 0.8); }
-                    #crosshair::before { top: 9px; left: 0; width: 20px; height: 2px; }
-                    #crosshair::after { top: 0; left: 9px; width: 2px; height: 20px; }
+                    :root {
+                        --ui-spacing: 32px;
+                        --glass-bg: rgba(20, 20, 30, 0.75);
+                        --glass-border: rgba(255, 255, 255, 0.1);
+                        --text-primary: #ffffff;
+                        --text-secondary: #aaaaaa;
+                        --accent-color: #4caf50;
+                    }
+
+                    body { 
+                        margin: 0; 
+                        padding: 0;
+                        overflow: hidden; 
+                        background: #1e1e1e;
+                        font-family: 'Segoe UI', Inter, system-ui, sans-serif; 
+                        user-select: none; 
+                    }
+
+                    canvas { 
+                        display: block; 
+                        width: 100vw; 
+                        height: 100vh; 
+                    }
+                    
+                    /* Main UI Layer - Fixed inset ensures uniform gap from all edges */
+                    #ui-layer { 
+                        position: fixed; 
+                        top: var(--ui-spacing); 
+                        left: var(--ui-spacing);
+                        right: var(--ui-spacing);
+                        bottom: var(--ui-spacing);
+                        pointer-events: none; 
+                        display: flex; 
+                        flex-direction: column; 
+                        align-items: flex-start;
+                        justify-content: space-between;
+                        z-index: 5;
+                    }
+
+                    /* Floating Card Component */
+                    .ui-card { 
+                        background: var(--glass-bg); 
+                        backdrop-filter: blur(16px); 
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1px solid var(--glass-border); 
+                        border-radius: 12px; 
+                        padding: 20px; 
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+                        pointer-events: auto;
+                        min-width: 260px;
+                    }
+
+                    #app-header {
+                        margin-bottom: 0; /* Reset margins */
+                    }
+
+                    h1 { 
+                        font-size: 20px; 
+                        font-weight: 800; 
+                        margin: 0 0 8px 0; 
+                        color: var(--text-primary); 
+                        letter-spacing: 0.5px;
+                        text-transform: uppercase;
+                    }
+
+                    #status-line { 
+                        font-size: 13px; 
+                        color: var(--text-secondary); 
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-bottom: 20px;
+                        font-weight: 500;
+                    }
+
+                    #status-dot {
+                        width: 8px;
+                        height: 8px;
+                        background-color: var(--accent-color);
+                        border-radius: 50%;
+                        box-shadow: 0 0 8px var(--accent-color);
+                    }
+
+                    /* Controls Section */
+                    .controls-grid { 
+                        display: grid;
+                        grid-template-columns: auto 1fr;
+                        gap: 12px 16px;
+                        align-items: center;
+                        background: rgba(255,255,255,0.03);
+                        padding: 16px;
+                        border-radius: 8px;
+                    }
+
+                    .key-combo {
+                        display: flex;
+                        gap: 4px;
+                    }
+
+                    .kbd { 
+                        background: linear-gradient(180deg, #3a3a3a 0%, #252525 100%);
+                        color: #eee; 
+                        padding: 4px 8px; 
+                        border-radius: 4px; 
+                        font-weight: 600; 
+                        font-family: 'JetBrains Mono', Consolas, monospace;
+                        font-size: 11px;
+                        min-width: 20px;
+                        text-align: center;
+                        border: 1px solid rgba(255,255,255,0.15);
+                        border-bottom: 2px solid #111;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+                    }
+                    
+                    .action-label {
+                        font-size: 13px;
+                        color: var(--text-secondary);
+                        font-weight: 500;
+                    }
+
+                    /* Progress Bar - Integrated into card */
+                    #progress-container { 
+                        width: 100%; 
+                        height: 4px; 
+                        background: rgba(255,255,255,0.1); 
+                        border-radius: 2px; 
+                        overflow: hidden; 
+                        margin-top: 16px;
+                        display: none; 
+                    }
+
+                    #progress-bar { 
+                        width: 0%; 
+                        height: 100%; 
+                        background: var(--accent-color); 
+                        transition: width 0.2s ease;
+                    }
+
+                    /* Crosshair - Centered independently */
+                    #crosshair { 
+                        position: fixed; 
+                        top: 50%; 
+                        left: 50%; 
+                        transform: translate(-50%, -50%); 
+                        width: 40px; 
+                        height: 40px; 
+                        pointer-events: none; 
+                        opacity: 0.7;
+                        z-index: 4;
+                    }
+
+                    #crosshair::before, #crosshair::after {
+                        content: '';
+                        position: absolute;
+                        background: rgba(255, 255, 255, 0.9);
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        box-shadow: 0 0 4px rgba(0,0,0,0.5);
+                    }
+                    
+                    #crosshair::before { width: 20px; height: 2px; }
+                    #crosshair::after { width: 2px; height: 20px; }
+
+                    /* Focus Blocker */
+                    #blocker { 
+                        position: fixed; 
+                        inset: 0;
+                        background-color: rgba(0,0,0,0.6); 
+                        backdrop-filter: blur(4px);
+                        display: flex; 
+                        justify-content: center; 
+                        align-items: center; 
+                        z-index: 10; 
+                        pointer-events: auto;
+                    }
+
+                    #instructions { 
+                        text-align: center; 
+                        color: white; 
+                        cursor: pointer;
+                        text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+                    }
+                    
+                    #modal-title {
+                        font-size: 32px;
+                        font-weight: 300;
+                        letter-spacing: 2px;
+                        margin-bottom: 12px;
+                    }
                 </style>
             </head>
             <body>
                 <div id="blocker">
                     <div id="instructions">
-                        <span>CLICK TO PLAY</span><br/>
-                        <span style="font-size: 14px">(WASD to Move, SPACE to Jump, MOUSE to Look)</span>
+                        <div id="modal-title">CLICK TO FOCUS</div>
+                        <div style="font-size: 14px; opacity: 0.8">WASD to Move &bull; SPACE to Jump &bull; MOUSE to Look</div>
                     </div>
                 </div>
-                <div id="overlay">
-                    <div id="crosshair"></div>
-                    <div id="info-box">
-                        <div id="title">CODE CRAFT</div>
-                        <div id="status">Generating World...</div>
-                        <div id="controls-hint">
-                            <span class="key">W</span><span class="key">A</span><span class="key">S</span><span class="key">D</span> Move
-                            <span class="key">SPACE</span> Jump
-                            <span class="key">ESC</span> Release Mouse
+
+                <div id="crosshair"></div>
+
+                <div id="ui-layer">
+                    <div class="ui-card" id="info-box">
+                        <header id="app-header">
+                            <h1 id="title">CODE CRAFT</h1>
+                        </header>
+                        
+                        <div id="status-line">
+                            <div id="status-dot"></div>
+                            <span id="status">Ready</span>
                         </div>
+
+                        <div class="controls-grid" id="controls-hint">
+                            <div class="key-combo">
+                                <span class="kbd">W</span><span class="kbd">A</span><span class="kbd">S</span><span class="kbd">D</span>
+                            </div> 
+                            <span class="action-label">Move</span>
+
+                            <div class="key-combo"><span class="kbd">SPACE</span></div> 
+                            <span class="action-label">Jump</span>
+                            
+                            <div class="key-combo"><span class="kbd">ESC</span></div> 
+                            <span class="action-label">Unlock</span>
+                        </div>
+
                         <div id="progress-container">
                             <div id="progress-bar"></div>
                         </div>
                     </div>
+                    
+                    <!-- Bottom right or other UI elements could go here in the future -->
                 </div>
+
                 <canvas id="canvas"></canvas>
                 <script src="${scriptUri}"></script>
             </body>
