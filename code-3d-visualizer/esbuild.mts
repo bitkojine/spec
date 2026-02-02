@@ -55,7 +55,7 @@ async function main() {
         entryPoints: ['src/webview/webview-script.mts'],
         bundle: true,
         format: 'iife', // Browser friendly
-        minify: production,
+        minify: true,
         sourcemap: !production,
         sourcesContent: false,
         platform: 'browser',

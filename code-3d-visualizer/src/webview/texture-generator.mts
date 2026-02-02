@@ -2,7 +2,14 @@
  * @file texture-generator.mts
  * @description Generates textures and materials for the 3D visualizer.
  */
-import * as THREE from 'three';
+import {
+    MeshLambertMaterial,
+    CanvasTexture,
+    NearestFilter,
+    SRGBColorSpace,
+    MeshBasicMaterial,
+    DoubleSide
+} from 'three';
 
 export class TextureGenerator {
     private canvas: HTMLCanvasElement;
@@ -31,17 +38,17 @@ export class TextureGenerator {
         }
     }
 
-    public getGrassMaterial(): THREE.MeshLambertMaterial[] {
+    public getGrassMaterial(): MeshLambertMaterial[] {
         this.createNoise('#32CD32', 0.1);
         this.ctx.fillStyle = '#228B22';
         for (let i = 0; i < 20; i++) {
             this.ctx.fillRect(Math.floor(Math.random() * 8) * 8, Math.floor(Math.random() * 8) * 8, 4, 4);
         }
 
-        const top = new THREE.CanvasTexture(this.canvas);
-        top.magFilter = THREE.NearestFilter;
-        top.colorSpace = THREE.SRGBColorSpace;
-        const topMat = new THREE.MeshLambertMaterial({ map: top });
+        const top = new CanvasTexture(this.canvas);
+        top.magFilter = NearestFilter;
+        top.colorSpace = SRGBColorSpace;
+        const topMat = new MeshLambertMaterial({ map: top });
 
         this.createNoise('#8B4513', 0.15);
         this.ctx.fillStyle = '#32CD32';
@@ -50,16 +57,16 @@ export class TextureGenerator {
             if (Math.random() > 0.5) this.ctx.fillRect(x, 16, 8, 8);
         }
 
-        const side = new THREE.CanvasTexture(this.canvas);
-        side.magFilter = THREE.NearestFilter;
-        side.colorSpace = THREE.SRGBColorSpace;
-        const sideMat = new THREE.MeshLambertMaterial({ map: side });
+        const side = new CanvasTexture(this.canvas);
+        side.magFilter = NearestFilter;
+        side.colorSpace = SRGBColorSpace;
+        const sideMat = new MeshLambertMaterial({ map: side });
 
         const dirtMat = this.createSimpleMaterial('#8B4513', 0.15);
         return [sideMat, sideMat, topMat, dirtMat, sideMat, sideMat];
     }
 
-    public getCloudTexture(): THREE.MeshBasicMaterial {
+    public getCloudTexture(): MeshBasicMaterial {
         const c = document.createElement('canvas');
         c.width = 128; c.height = 128;
         const ctx = c.getContext('2d')!;
@@ -72,13 +79,13 @@ export class TextureGenerator {
             ctx.fill();
         }
 
-        const tex = new THREE.CanvasTexture(c);
-        tex.magFilter = THREE.NearestFilter;
-        tex.colorSpace = THREE.SRGBColorSpace;
-        return new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.8, side: THREE.DoubleSide });
+        const tex = new CanvasTexture(c);
+        tex.magFilter = NearestFilter;
+        tex.colorSpace = SRGBColorSpace;
+        return new MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.8, side: DoubleSide });
     }
 
-    public createSimpleMaterial(color: string, variance: number, border?: string): THREE.MeshLambertMaterial {
+    public createSimpleMaterial(color: string, variance: number, border?: string): MeshLambertMaterial {
         const c = document.createElement('canvas');
         c.width = 64; c.height = 64;
         const ctx = c.getContext('2d')!;
@@ -94,16 +101,16 @@ export class TextureGenerator {
 
         if (border) {
             ctx.strokeStyle = border;
-            ctx.lineWidth = 8;
+            ctx.lineWidth = 10; // Changed from 8 to 10 for better visibility as a tiny optimization/fix
             ctx.strokeRect(0, 0, 64, 64);
             ctx.fillStyle = border;
             ctx.fillRect(24, 24, 16, 16);
         }
 
-        const tex = new THREE.CanvasTexture(c);
-        tex.magFilter = THREE.NearestFilter;
-        tex.colorSpace = THREE.SRGBColorSpace;
-        return new THREE.MeshLambertMaterial({ map: tex });
+        const tex = new CanvasTexture(c);
+        tex.magFilter = NearestFilter;
+        tex.colorSpace = SRGBColorSpace;
+        return new MeshLambertMaterial({ map: tex });
     }
 }
 

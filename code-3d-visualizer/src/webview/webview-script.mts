@@ -2,7 +2,7 @@
  * @file webview-script.mts
  * @description Main entry point for the 3D visualizer webview.
  */
-import * as THREE from 'three';
+import { BoxGeometry, MeshBasicMaterial, Mesh } from 'three';
 import { SceneManager } from './scene-manager.mjs';
 import { InputManager } from './input-manager.mjs';
 import { VSCodeApi } from './types.mjs';
@@ -35,9 +35,9 @@ function createStaticWorld() {
     }
 
     // Sun
-    const sunGeom = new THREE.BoxGeometry(10, 10, 10);
-    const sunMat = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
-    const sun = new THREE.Mesh(sunGeom, sunMat);
+    const sunGeom = new BoxGeometry(10, 10, 10);
+    const sunMat = new MeshBasicMaterial({ color: 0xFFD700 });
+    const sun = new Mesh(sunGeom, sunMat);
     sun.position.set(50, 80, -50);
     sceneManager.worldGroup.add(sun);
 }
