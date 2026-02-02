@@ -14,24 +14,14 @@ export interface ILogger {
 }
 
 /**
- * A simple console-based logger as a fallback.
+ * A minimal logger that does nothing - forces proper logger implementation.
  */
 class ConsoleLogger implements ILogger {
-    constructor(private serviceName: string) { }
+    constructor(_serviceName: string) { }
 
-    private log(level: Severity, message: string, context?: Record<string, unknown>): void {
-        const timestamp = new Date().toISOString();
-        const payload = JSON.stringify({ timestamp, level, service: this.serviceName, message, context });
-
-        /* eslint-disable no-console -- Disabling because this is the fallback ConsoleLogger implementation. */
-        switch (level) {
-            case "DEBUG": console.debug(payload); break;
-            case "INFO": console.info(payload); break;
-            case "WARN": console.warn(payload); break;
-            case "ERROR":
-            case "FATAL": console.error(payload); break;
-        }
-        /* eslint-enable no-console -- Restoring console check after fallback logger block. */
+    private log(_level: Severity, _message: string, _context?: Record<string, unknown>): void {
+        // Intentionally empty - forces use of proper logging infrastructure
+        // Real implementations should use ELK transport or webview bridging
     }
 
     debug(message: string, context?: Record<string, unknown>) { this.log("DEBUG", message, context); }

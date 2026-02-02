@@ -5,6 +5,8 @@
 
 import * as vscode from 'vscode';
 import { Severity } from '../common/contract.cjs';
+import { NodeElkLogger } from '../common/node-elk-logger.cjs';
+import { ILogger } from '../common/logger.cjs';
 
 export interface LogEntry {
     timestamp: string;
@@ -14,13 +16,13 @@ export interface LogEntry {
     context?: Record<string, unknown>;
 }
 
-export class StructuredLogger {
+export class StructuredLogger implements ILogger {
     private outputChannel: vscode.OutputChannel;
-    private serviceName: string;
+    private elkLogger: NodeElkLogger;
 
     constructor(serviceName: string) {
-        this.serviceName = serviceName;
         this.outputChannel = vscode.window.createOutputChannel("Code 3D Visualizer");
+        this.elkLogger = new NodeElkLogger(serviceName);
     }
 
     private log(level: Severity, message: string, context?: Record<string, unknown>): void {
@@ -31,22 +33,17 @@ export class StructuredLogger {
         const entry: LogEntry = {
             timestamp: new Date().toISOString(),
             level,
-            service: this.serviceName,
+            service: "ExtensionHost",
             message,
             context
         };
 
-        // In production, this would go to a log aggregator. 
-        // For VSCode, we output JSON string to the output channel.
+        // Output to VSCode channel for development visibility
         const payload = JSON.stringify(entry);
         this.outputChannel.appendLine(payload);
 
-        // ALWAYS write to console as well if we are in a test/dev environment 
-        // so that cli-to-elk.mjs can capture the logs from the spawned process.
-        if (process.env.STRESS_TEST === 'true' || process.env.LOG_LEVEL === 'debug') {
-            /* eslint-disable-next-line no-console -- Required for ELK transport via stdout to capture extension host logs during tests */
-            console.log(payload);
-        }
+        // Send to ELK stack - if this fails, let it crash
+        this.elkLogger[level.toLowerCase() as keyof ILogger](message, context);
 
         if (level === "ERROR" || level === "FATAL") {
             this.outputChannel.show(true);
