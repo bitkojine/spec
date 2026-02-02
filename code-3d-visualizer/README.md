@@ -18,6 +18,26 @@ A production-quality VSCode extension starter using TypeScript and Three.js, fol
 3. Press `F5` to start debugging.
 4. Run the command `Show 3D View`.
 
+## Performance Monitoring
+
+The extension includes a built-in performance monitoring suite using the **ELK Stack** (Elasticsearch, Logstash, Kibana).
+
+### 🚀 Quick Start
+1.  **Setup ELK**: Ensure Docker is running and execute:
+    ```bash
+    npm run elk:setup
+    ```
+2.  **Generate Data**: Run the automated benchmark suite:
+    ```bash
+    npm run test:perf
+    ```
+3.  **View Dashboard**: Open Kibana at [http://localhost:5601](http://localhost:5601) and navigate to the **Performance Monitoring** dashboard.
+
+### 📊 Key Metrics
+- **Parsing Latency**: Real-time analysis speed of the TS parser.
+- **WebView FPS**: Rendering performance of the 3D scene.
+- **Heap Usage**: Memory delta tracking for both the Extension Host and WebView layers.
+
 ## Engineering Specs Followed
 
 - [architecture/01-contracts.md](file:///Users/name/trusted-git/oss/spec/architecture/01-contracts.md)
