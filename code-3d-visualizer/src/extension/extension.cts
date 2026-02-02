@@ -11,6 +11,7 @@ import { FileParser } from './parser.cjs';
 import { VisualizerError } from '../common/errors.cjs';
 import { ExtensionToWebviewMessage } from '../common/contract.cjs';
 import { WorkspaceManager } from './workspace-manager.cjs';
+import { taskTracker } from '../common/background-task-tracker.cjs';
 
 let currentPanel: vscode.WebviewPanel | undefined = undefined;
 
@@ -60,16 +61,18 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
 
         const cts = new vscode.CancellationTokenSource();
         try {
-            const objects = await parser.parse(editor.document, cts.token);
-            const message: ExtensionToWebviewMessage = {
-                type: "UPDATE_SCENE",
-                payload: {
-                    blocks: objects,
-                    originFile: editor.document.fileName
-                }
-            };
+            await taskTracker.track("Show 3D View", (async () => {
+                const objects = await parser.parse(editor.document, cts.token);
+                const message: ExtensionToWebviewMessage = {
+                    type: "UPDATE_SCENE",
+                    payload: {
+                        blocks: objects,
+                        originFile: editor.document.fileName
+                    }
+                };
 
-            panel.webview.postMessage(message);
+                panel.webview.postMessage(message);
+            })());
 
         } catch (error: unknown) {
             if (error instanceof VisualizerError) {
@@ -97,31 +100,33 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
             token.onCancellationRequested(() => cts.cancel());
 
             try {
-                const objects = await workspaceManager.scanWorkspace(
-                    cts.token,
-                    progress,
-                    (messageText, increment, current, total) => {
-                        const progressMsg: ExtensionToWebviewMessage = {
-                            type: "PROGRESS",
-                            payload: {
-                                message: messageText,
-                                increment,
-                                totalFiles: total,
-                                currentFile: current
-                            }
-                        };
-                        panel.webview.postMessage(progressMsg);
-                    }
-                );
-                const message: ExtensionToWebviewMessage = {
-                    type: "UPDATE_SCENE",
-                    payload: {
-                        blocks: objects, // objects is actually Block[] now due to workspace-manager return type update
-                        originFile: "Full Workspace"
-                    }
-                };
-                provider.setLastObjectsCount(objects.length);
-                panel.webview.postMessage(message);
+                await taskTracker.track("Full Codebase Visualization", (async () => {
+                    const objects = await workspaceManager.scanWorkspace(
+                        cts.token,
+                        progress,
+                        (messageText, increment, current, total) => {
+                            const progressMsg: ExtensionToWebviewMessage = {
+                                type: "PROGRESS",
+                                payload: {
+                                    message: messageText,
+                                    increment,
+                                    totalFiles: total,
+                                    currentFile: current
+                                }
+                            };
+                            panel.webview.postMessage(progressMsg);
+                        }
+                    );
+                    const message: ExtensionToWebviewMessage = {
+                        type: "UPDATE_SCENE",
+                        payload: {
+                            blocks: objects,
+                            originFile: "Full Workspace"
+                        }
+                    };
+                    provider.setLastObjectsCount(objects.length);
+                    panel.webview.postMessage(message);
+                })());
             } catch (error: unknown) {
                 logger.error("Workspace scan failed", { error });
             }
@@ -131,7 +136,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
     context.subscriptions.push(fullScanDisposable);
 
     // Auto-open 3D view on activation as requested
-    vscode.commands.executeCommand('code-3d-visualizer.visualizeFullCodebase').then(
+    taskTracker.track("Auto-visualization on startup", Promise.resolve(vscode.commands.executeCommand('code-3d-visualizer.visualizeFullCodebase'))).then(
         () => logger.info("Auto-visualization triggered"),
         (err: unknown) => logger.error("Failed to trigger auto-visualization", { error: err })
     );
