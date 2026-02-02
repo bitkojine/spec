@@ -75,7 +75,7 @@ export class SceneManager {
         return cube;
     }
 
-    public createInfiniteGround(size: number): void {
+    public createGroundPlane(size: number): void {
         const geometry = new PlaneGeometry(size, size);
         const baseMaterial = MATERIALS.grass[2]; // Use the top texture only
 

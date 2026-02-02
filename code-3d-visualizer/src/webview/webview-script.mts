@@ -29,7 +29,7 @@ sceneManager.scene.add(inputManager.controls.getObject());
 function createStaticWorld() {
     // Ground
     const size = 1000;
-    sceneManager.createInfiniteGround(size);
+    sceneManager.createGroundPlane(size);
 
     // Sun
     const sunGeom = new BoxGeometry(10, 10, 10);
