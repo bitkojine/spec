@@ -10,14 +10,13 @@ import { Option } from '../common/option.cjs';
 
 export class WebviewLogger implements ILogger {
     constructor(
-        private readonly vscode: Option<VSCodeApi>,
-        private readonly serviceName: string = "Webview"
+        private readonly vscode: Option<VSCodeApi>
     ) { }
 
     private log(level: Severity, message: string, context?: Record<string, unknown>): void {
         const timestamp = new Date().toISOString();
 
-        // 1. Post back to extension for centralized logging (Output Channel) if API is present
+        // Post back to extension for centralized logging (Output Channel) if API is present
         this.vscode.forEach(api => {
             const msg: WebviewToExtensionMessage = {
                 type: "LOG",
@@ -31,17 +30,8 @@ export class WebviewLogger implements ILogger {
             api.postMessage(msg);
         });
 
-        // 2. Also log to console for local debugging (Real browser API)
-        /* eslint-disable no-console -- Fallback for webview environment before specialized logging is available. */
-        const payload = JSON.stringify({ timestamp, level, service: this.serviceName, message, context });
-        switch (level) {
-            case "DEBUG": console.debug(payload); break;
-            case "INFO": console.info(payload); break;
-            case "WARN": console.warn(payload); break;
-            case "ERROR":
-            case "FATAL": console.error(payload); break;
-        }
-        /* eslint-enable no-console -- Restoring console check after fallback logger block. */
+        // Note: Webview environment doesn't have access to Node.js streams
+        // All logging goes through the extension host for proper aggregation
     }
 
     debug(message: string, context?: Record<string, unknown>): void { this.log("DEBUG", message, context); }

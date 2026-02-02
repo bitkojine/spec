@@ -11,7 +11,7 @@ async function main() {
     let exitCode = 0;
 
     // 1. Verify Bug-First Metadata in Tests
-    /* eslint-disable no-console -- Disabling because this is a CLI tool where terminal output is the primary UI. */
+    /* eslint-disable no-console -- CLI tool output for user feedback */
     console.log("Running Specification Verification...");
 
     // 1. Verify Bug-First Metadata in Tests
@@ -25,7 +25,19 @@ async function main() {
         const hasPreventedBehavior = content.includes('@prevented_behavior');
 
         if (!hasBug || !hasFailureCause || !hasPreventedBehavior) {
-            console.error(`FAIL: ${file} is missing mandatory Bug-First metadata (@bug, @failure_cause, @prevented_behavior)`);
+            const errorLog = {
+                timestamp: new Date().toISOString(),
+                level: "ERROR",
+                service: "SpecVerifier",
+                message: "Missing Bug-First metadata",
+                context: {
+                    file,
+                    hasBug,
+                    hasFailureCause,
+                    hasPreventedBehavior
+                }
+            };
+            console.error(JSON.stringify(errorLog));
             exitCode = 1;
         }
     }
@@ -37,7 +49,14 @@ async function main() {
     for (const file of srcFiles) {
         const content = await readFile(file, 'utf-8');
         if (!content.includes('@file')) {
-            console.error(`FAIL: ${file} is missing mandatory @file header`);
+            const errorLog = {
+                timestamp: new Date().toISOString(),
+                level: "ERROR",
+                service: "SpecVerifier",
+                message: "Missing @file header",
+                context: { file }
+            };
+            console.error(JSON.stringify(errorLog));
             exitCode = 1;
         }
 
@@ -49,16 +68,36 @@ async function main() {
                 file.includes('test'); // Tests might use them for mocking time if absolutely necessary, though discouraged
 
             if (!isAllowed) {
-                console.error(`FAIL: ${file} contains unmanaged timers (setTimeout/setInterval). Use BackgroundTaskTracker instead.`);
+                const errorLog = {
+                    timestamp: new Date().toISOString(),
+                    level: "ERROR",
+                    service: "SpecVerifier",
+                    message: "Unmanaged timers found",
+                    context: { file }
+                };
+                console.error(JSON.stringify(errorLog));
                 exitCode = 1;
             }
         }
     }
 
     if (exitCode === 0) {
-        console.log("SUCCESS: All specification checks passed.");
+        const successLog = {
+            timestamp: new Date().toISOString(),
+            level: "INFO",
+            service: "SpecVerifier",
+            message: "All specification checks passed"
+        };
+        console.log(JSON.stringify(successLog));
     } else {
-        console.error("FAILURE: One or more specification checks failed.");
+        const failureLog = {
+            timestamp: new Date().toISOString(),
+            level: "ERROR",
+            service: "SpecVerifier",
+            message: "Specification checks failed",
+            context: { exitCode }
+        };
+        console.error(JSON.stringify(failureLog));
     }
     /* eslint-enable no-console -- Restoring console check after main CLI logic. */
 
@@ -66,8 +105,18 @@ async function main() {
 }
 
 main().catch(err => {
-    /* eslint-disable no-console -- Disabling because critical internal errors in this CLI script must be visible. */
-    console.error("Internal Error during specification verification:", err);
+    /* eslint-disable no-console -- Critical internal errors must be visible */
+    const errorLog = {
+        timestamp: new Date().toISOString(),
+        level: "ERROR",
+        service: "SpecVerifier",
+        message: "Internal error during specification verification",
+        context: {
+            error: err instanceof Error ? err.message : String(err),
+            stack: err instanceof Error ? err.stack : undefined
+        }
+    };
+    console.error(JSON.stringify(errorLog));
     /* eslint-enable no-console -- Restoring console check. */
     process.exit(1);
 });

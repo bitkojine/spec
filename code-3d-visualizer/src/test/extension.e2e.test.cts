@@ -82,6 +82,26 @@ suite('Bug-First E2E Tests', function () {
     });
 
     /**
+     * @bug Invalid time value in logger causes extension activation to hang
+     * @failure_cause Mutation: Pino formatter receiving invalid time values and throwing Invalid time value errors
+     * @prevented_behavior Extension fails to activate, hangs indefinitely, users cannot use the extension
+     */
+    test('Should handle invalid time values in logger gracefully', async function () {
+        this.timeout(5000); // 5 second timeout for logger test
+        
+        const ext = vscode.extensions.getExtension('visualizer.code-3d-visualizer');
+        assert.ok(ext, "Extension should be present");
+        
+        // The extension should activate without hanging even if logger encounters invalid time values
+        await ext.activate();
+        assert.strictEqual(ext.isActive, true, "Extension should activate successfully despite potential logging issues");
+        
+        // Verify extension is functional after activation
+        const commands = await vscode.commands.getCommands(true);
+        assert.ok(commands.includes('code-3d-visualizer.show3DView'), "Commands should be registered after activation");
+    });
+
+    /**
      * @bug Extension crashes when no editor is open but 3D view is triggered.
      * @failure_cause Mutation: failing to check 'vscode.window.activeTextEditor' for undefined.
      * @prevented_behavior "Visualizer Error" notification appearing to user.

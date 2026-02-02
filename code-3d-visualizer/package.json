@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.33",
+  "version": "0.0.37",
   "type": "module",
   "repository": {
     "type": "git",
@@ -34,18 +34,29 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "npm run lint && npm run check-specs && npm run compile:extension && npm run compile:webview",
+    "vscode:prepublish": "node scripts/cli-to-elk.mjs npm run compile",
+    "compile": "node scripts/cli-to-elk.mjs npm run lint && npm run check-specs && npm run compile:extension && npm run compile:webview && npm run compile:tests",
     "compile:extension": "node esbuild.mts --extension",
     "compile:webview": "node esbuild.mts --webview",
-    "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile",
-    "lint": "eslint . --ext .ts,.js,.mts,.cts",
-    "check-specs": "node scripts/verify-specs.mts",
-    "test": "node ./out/test/runTest.cjs",
-    "test:stress": "STRESS_TEST=true node ./out/test/runTest.cjs",
-    "version:bump": "npm version patch --no-git-tag-version",
-    "install:local": "npm run version:bump && rm -f *.vsix && vsce package --allow-missing-repository && code --install-extension *.vsix --force && code ."
+    "compile:tests": "tsc",
+    "watch": "node scripts/cli-to-elk.mjs tsc -watch -p ./",
+    "pretest": "node scripts/cli-to-elk.mjs npm run compile",
+    "lint": "node scripts/cli-to-elk.mjs eslint . --ext .ts,.js,.mts,.cts",
+    "check-specs": "node scripts/cli-to-elk.mjs node scripts/verify-specs.mts",
+    "test": "LOG_LEVEL=info node scripts/cli-to-elk.mjs node ./out/test/runTest.cjs",
+    "test:debug": "LOG_LEVEL=debug node scripts/cli-to-elk.mjs node ./out/test/runTest.cjs",
+    "test:local": "LOG_LEVEL=info node ./out/test/runTest.cjs 2>&1 | node scripts/log-aggregator.mjs",
+    "test:stress": "STRESS_TEST=true LOG_LEVEL=info node scripts/cli-to-elk.mjs node ./out/test/runTest.cjs",
+    "logs:tail": "curl -s 'http://localhost:9200/code-visualizer-logs-*/_search?pretty&sort=@timestamp:desc' | node -e \"process.stdin.on('data', d => { const hits = JSON.parse(d.toString()).hits.hits; hits.forEach(h => console.log(JSON.stringify(h._source, null, 2))); })\"",
+    "logs:errors": "curl -s 'http://localhost:9200/code-visualizer-logs-*/_search?q=level:ERROR&pretty&sort=@timestamp:desc' | node -e \"process.stdin.on('data', d => { const hits = JSON.parse(d.toString()).hits.hits; hits.forEach(h => console.log(JSON.stringify(h._source, null, 2))); })\"",
+    "logs:clean": "node scripts/cli-to-elk.mjs rm -f logs/*.log",
+    "elk:start": "node scripts/cli-to-elk.mjs ./scripts/elk.sh start",
+    "elk:stop": "node scripts/cli-to-elk.mjs ./scripts/elk.sh stop",
+    "elk:status": "node scripts/cli-to-elk.mjs ./scripts/elk.sh status",
+    "elk:logs": "node scripts/cli-to-elk.mjs ./scripts/elk.sh logs",
+    "elk:setup": "node scripts/cli-to-elk.mjs ./scripts/elk.sh setup",
+    "version:bump": "node scripts/cli-to-elk.mjs npm version patch --no-git-tag-version",
+    "install:local": "node scripts/cli-to-elk.mjs npm run version:bump && rm -f *.vsix && node scripts/cli-to-elk.mjs vsce package --allow-missing-repository && node scripts/cli-to-elk.mjs code --install-extension *.vsix --force && node scripts/cli-to-elk.mjs code ."
   },
   "devDependencies": {
     "@types/glob": "^8.1.0",
@@ -65,6 +76,9 @@
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "@types/pino": "^7.0.4",
+    "pino": "^10.3.0",
+    "pino-pretty": "^13.1.3",
     "three": "^0.160.0"
   }
 }

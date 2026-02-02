@@ -76,8 +76,8 @@ async function main() {
             if (webviewCtx) promises.push(webviewCtx.rebuild());
             await Promise.all(promises);
         } catch (err) {
-            // eslint-disable-next-line no-console -- Disabling because this is a build script where terminal output is the primary interface.
-            console.error("Build failed:", err);
+            // eslint-disable-next-line no-console -- Build script error output
+            console.error("Build failed:", err instanceof Error ? err.message : String(err));
             process.exit(1);
         } finally {
             const promises = [];
@@ -89,7 +89,7 @@ async function main() {
 }
 
 main().catch(e => {
-    // eslint-disable-next-line no-console -- Disabling because this is the build entry point and errors must be visible in the terminal.
-    console.error(e);
+    // eslint-disable-next-line no-console -- Build script error output
+    console.error("Build entry point error:", e instanceof Error ? e.message : String(e));
     process.exit(1);
 });
