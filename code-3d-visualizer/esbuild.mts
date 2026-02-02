@@ -34,7 +34,10 @@ const resolveMjsJsToTs: esbuild.Plugin = {
 };
 
 async function main() {
-    const extensionCtx = await esbuild.context({
+    const buildExtension = process.argv.includes('--extension') || !process.argv.some(arg => arg.startsWith('--'));
+    const buildWebview = process.argv.includes('--webview') || !process.argv.some(arg => arg.startsWith('--'));
+
+    const extensionCtx = buildExtension ? await esbuild.context({
         entryPoints: ['src/extension/extension.cts'],
         bundle: true,
         format: 'cjs',
@@ -44,11 +47,11 @@ async function main() {
         platform: 'node',
         outfile: 'dist/extension.cjs',
         external: ['vscode'],
-        logLevel: 'silent',
+        logLevel: 'info',
         plugins: [resolveMjsJsToTs],
-    });
+    }) : undefined;
 
-    const webviewCtx = await esbuild.context({
+    const webviewCtx = buildWebview ? await esbuild.context({
         entryPoints: ['src/webview/webview-script.mts'],
         bundle: true,
         format: 'iife', // Browser friendly
@@ -57,21 +60,30 @@ async function main() {
         sourcesContent: false,
         platform: 'browser',
         outfile: 'dist/webview-script.js',
-        logLevel: 'silent',
+        logLevel: 'info',
         plugins: [resolveMjsJsToTs],
-    });
+    }) : undefined;
 
     if (watch) {
-        await Promise.all([extensionCtx.watch(), webviewCtx.watch()]);
+        const promises = [];
+        if (extensionCtx) promises.push(extensionCtx.watch());
+        if (webviewCtx) promises.push(webviewCtx.watch());
+        await Promise.all(promises);
     } else {
         try {
-            await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()]);
+            const promises = [];
+            if (extensionCtx) promises.push(extensionCtx.rebuild());
+            if (webviewCtx) promises.push(webviewCtx.rebuild());
+            await Promise.all(promises);
         } catch (err) {
             // eslint-disable-next-line no-console -- Disabling because this is a build script where terminal output is the primary interface.
             console.error("Build failed:", err);
             process.exit(1);
         } finally {
-            await Promise.all([extensionCtx.dispose(), webviewCtx.dispose()]);
+            const promises = [];
+            if (extensionCtx) promises.push(extensionCtx.dispose());
+            if (webviewCtx) promises.push(webviewCtx.dispose());
+            await Promise.all(promises);
         }
     }
 }

@@ -30,6 +30,16 @@ export class VisualizerWebviewProvider {
             } else if (data.type === "VISUAL_REPORT") {
                 this._lastVisualReport = data.payload;
                 logger.info("Received visual report from webview", data.payload);
+            } else if (data.type === "LOG") {
+                // Forward webview log to centralized extension logger
+                const { severity, message, context } = data.payload;
+                switch (severity) {
+                    case "DEBUG": logger.debug(message, context); break;
+                    case "INFO": logger.info(message, context); break;
+                    case "WARN": logger.warn(message, context); break;
+                    case "ERROR":
+                    case "FATAL": logger.error(message, context); break;
+                }
             }
         } else if (isExtensionMessage(data)) {
             logger.debug("Received extension message in provider", { type: data.type });

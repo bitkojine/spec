@@ -40,11 +40,11 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
 
         currentPanel.onDidDispose(() => {
             currentPanel = undefined;
-        }, null, context.subscriptions);
+        }, undefined, context.subscriptions);
 
         currentPanel.webview.onDidReceiveMessage((data: unknown) => {
             provider.handleWebviewMessage(data);
-        }, null, context.subscriptions);
+        }, undefined, context.subscriptions);
 
         currentPanel.webview.html = provider.getHtmlForWebview(currentPanel.webview);
         return currentPanel;

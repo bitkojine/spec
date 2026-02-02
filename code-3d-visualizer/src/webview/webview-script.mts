@@ -8,9 +8,15 @@ import { InputManager } from './input-manager.mjs';
 import { VSCodeApi } from './types.mjs';
 import { ExtensionToWebviewMessage, Block } from '../common/contract.cjs';
 import { managedDelay } from '../common/utils.cjs';
+import { logger, setLogger } from '../common/logger.cjs';
+import { WebviewLogger } from './webview-logger.mjs';
+import { some, none } from '../common/option.cjs';
 
 declare function acquireVsCodeApi(): VSCodeApi;
-const vscode = acquireVsCodeApi();
+const vscode = typeof acquireVsCodeApi === 'function' ? some(acquireVsCodeApi()) : none();
+
+// Initialize proper logging bridge
+setLogger(new WebviewLogger(vscode));
 
 const canvas = document.getElementById('canvas') as HTMLCanvasElement;
 const sceneManager = new SceneManager(canvas);
@@ -48,43 +54,57 @@ function runVisualCheck() {
         if (Math.abs(pixels[i] - 135) > 10) coloredPixels++;
     }
 
-    vscode.postMessage({
-        type: 'VISUAL_REPORT',
-        payload: { hasPixels: coloredPixels > 0, pixelCount: coloredPixels }
+    vscode.forEach(api => {
+        api.postMessage({
+            type: 'VISUAL_REPORT',
+            payload: { hasPixels: coloredPixels > 0, pixelCount: coloredPixels }
+        });
     });
 }
 
 window.addEventListener('message', async (event: MessageEvent<ExtensionToWebviewMessage>) => {
-    const message = event.data;
-    const statusEl = document.getElementById('status');
-    const progressBar = document.getElementById('progress-bar');
-    const pContainer = document.getElementById('progress-container');
+    try {
+        const message = event.data;
+        const statusEl = document.getElementById('status');
+        const progressBar = document.getElementById('progress-bar');
+        const pContainer = document.getElementById('progress-container');
 
-    if (message.type === 'PROGRESS') {
-        if (pContainer) pContainer.style.display = 'block';
-        if (statusEl) statusEl.textContent = message.payload.message;
-        if (message.payload.totalFiles && progressBar) {
-            const percent = (message.payload.currentFile! / message.payload.totalFiles) * 100;
-            progressBar.style.width = `${percent}%`;
+        if (message.type === 'PROGRESS') {
+            if (pContainer) pContainer.style.display = 'block';
+            if (statusEl) statusEl.textContent = message.payload.message;
+            if (message.payload.totalFiles && progressBar) {
+                const percent = (message.payload.currentFile! / message.payload.totalFiles) * 100;
+                progressBar.style.width = `${percent}%`;
+            }
+        } else if (message.type === 'UPDATE_SCENE') {
+            if (pContainer) pContainer.style.display = 'none';
+            if (statusEl) statusEl.textContent = `World Loaded: ${message.payload.originFile}`;
+
+            while (sceneManager.codeGroup.children.length > 0) {
+                sceneManager.codeGroup.remove(sceneManager.codeGroup.children[0]);
+            }
+
+            message.payload.blocks.forEach((block: Block) => {
+                sceneManager.createBlock(block.position.x, block.position.y, block.position.z, block.type, sceneManager.codeGroup);
+            });
+
+            await managedDelay(500);
+            runVisualCheck();
         }
-    } else if (message.type === 'UPDATE_SCENE') {
-        if (pContainer) pContainer.style.display = 'none';
-        if (statusEl) statusEl.textContent = `World Loaded: ${message.payload.originFile}`;
+    } catch (error: unknown) {
+        // Log to centralized logger (which now bridges to extension Output Channel)
+        logger.error("Webview Message Error", { error: error instanceof Error ? error.message : String(error) });
 
-        while (sceneManager.codeGroup.children.length > 0) {
-            sceneManager.codeGroup.remove(sceneManager.codeGroup.children[0]);
+        if (vscode.type === 'some') {
+            vscode.value.postMessage({
+                type: "VISUAL_REPORT",
+                payload: { hasPixels: false }
+            });
         }
-
-        message.payload.blocks.forEach((block: Block) => {
-            sceneManager.createBlock(block.position.x, block.position.y, block.position.z, block.type, sceneManager.codeGroup);
-        });
-
-        await managedDelay(500);
-        runVisualCheck();
     }
 });
 
-vscode.postMessage({ type: 'READY' });
+vscode.forEach(api => api.postMessage({ type: 'READY' }));
 
 // --- Animation Loop ---
 let prevTime = performance.now();

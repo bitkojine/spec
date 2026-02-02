@@ -83,7 +83,7 @@ suite('Bug-First E2E Tests', function () {
 
     /**
      * @bug Extension crashes when no editor is open but 3D view is triggered.
-     * @failure_cause Mutation: failing to check 'vscode.window.activeTextEditor' for null.
+     * @failure_cause Mutation: failing to check 'vscode.window.activeTextEditor' for undefined.
      * @prevented_behavior "Visualizer Error" notification appearing to user.
      */
     test('Should handle no active editor gracefully', async () => {

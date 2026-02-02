@@ -6,6 +6,8 @@ import { WebviewToExtensionMessage } from '../common/contract.cjs';
 
 export interface VSCodeApi {
     postMessage(message: WebviewToExtensionMessage): void;
+    getState(): unknown;
+    setState(state: unknown): unknown;
 }
 
 export interface PhysicsConstants {

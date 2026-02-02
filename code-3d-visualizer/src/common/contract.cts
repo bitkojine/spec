@@ -79,19 +79,20 @@ export interface VisualReportMessage {
 export type WebviewToExtensionMessage =
     | { type: "READY" }
     | { type: "OBJECT_CLICKED"; payload: { id: string } }
-    | VisualReportMessage;
+    | VisualReportMessage
+    | LogMessage;
 
 /**
  * Type guard for Extension messages.
  */
 export function isExtensionMessage(data: unknown): data is ExtensionToWebviewMessage {
-    if (typeof data !== "object" || data === null) return false;
+    if (typeof data !== "object" || !data) return false;
     const msg = data as Record<string, unknown>;
     return ["LOG", "UPDATE_SCENE", "ERROR", "PROGRESS"].includes(msg.type as string);
 }
 
 export function isWebviewMessage(data: unknown): data is WebviewToExtensionMessage {
-    if (typeof data !== "object" || data === null) return false;
+    if (typeof data !== "object" || !data) return false;
     const msg = data as Record<string, unknown>;
     return ["READY", "OBJECT_CLICKED", "VISUAL_REPORT"].includes(msg.type as string);
 }
