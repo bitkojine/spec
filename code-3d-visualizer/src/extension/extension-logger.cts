@@ -24,6 +24,10 @@ export class StructuredLogger {
     }
 
     private log(level: Severity, message: string, context?: Record<string, unknown>): void {
+        const levels: Record<Severity, number> = { "DEBUG": 0, "INFO": 1, "WARN": 2, "ERROR": 3, "FATAL": 4 };
+        const minLevel = levels[process.env.LOG_LEVEL as Severity] ?? 1;
+        if (levels[level] < minLevel) return;
+
         const entry: LogEntry = {
             timestamp: new Date().toISOString(),
             level,

@@ -39,7 +39,7 @@ export class WorkspaceManager {
                 const excludePattern = `{${excludes.join(',')}}`;
                 const files = await vscode.workspace.findFiles('**/*.{ts,js,cts,mts}', excludePattern);
                 const total = files.length;
-                logger.info(`Found ${total} files to parse`, { files: files.map(f => f.fsPath) });
+                logger.info(`Found ${total} files to parse`);
 
                 if (progress) {
                     progress.report({ message: `Found ${total} files. Parsing...`, increment: 0 });

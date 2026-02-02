@@ -32,7 +32,7 @@ export class FileParser {
                 // 1. Classes, Interfaces, Enums (including exported)
                 const classMatch = line.match(/\b(export\s+)?(class|abstract\s+class|interface|enum)\s+(\w+)/);
                 if (classMatch) {
-                    logger.debug(`Matched Class: ${classMatch[3]}`, { line });
+                    logger.debug(`Matched Class: ${classMatch[3]}`);
                     objects.push(this.createObject(classMatch[3], 'class', objects.length));
                     continue;
                 }
@@ -40,7 +40,7 @@ export class FileParser {
                 // 2. Named Functions (including exported and async)
                 const funcMatch = line.match(/\b(export\s+)?(async\s+)?function\*?\s+(\w+)/);
                 if (funcMatch) {
-                    logger.debug(`Matched Fun: ${funcMatch[3]}`, { line });
+                    logger.debug(`Matched Fun: ${funcMatch[3]}`);
                     objects.push(this.createObject(funcMatch[3], 'function', objects.length));
                     continue;
                 }
@@ -49,7 +49,7 @@ export class FileParser {
                 const constMatch = line.match(/\b(export\s+)?(const|let|var)\s+(\w+)\s*=\s*(async\s+)?(\(.*\)|[\w$]+)\s*=>/) ||
                     line.match(/\b(export\s+)?(const|let|var)\s+(\w+)\s*=\s*function/);
                 if (constMatch) {
-                    logger.debug(`Matched Arrow/Const: ${constMatch[3]}`, { line });
+                    logger.debug(`Matched Arrow/Const: ${constMatch[3]}`);
                     objects.push(this.createObject(constMatch[3], 'function', objects.length));
                     continue;
                 }
@@ -57,7 +57,7 @@ export class FileParser {
                 // 4. Methods (implicit or explicit visibility)
                 const methodMatch = line.match(/\b(public|private|protected|static|async)?\s*(async\s+)?(\w+)\s*\(/);
                 if (methodMatch && !['if', 'for', 'while', 'switch', 'catch'].includes(methodMatch[3])) {
-                    logger.debug(`Matched Method: ${methodMatch[3]}`, { line });
+                    logger.debug(`Matched Method: ${methodMatch[3]}`);
                     objects.push(this.createObject(methodMatch[3], 'function', objects.length));
                     continue;
                 }
