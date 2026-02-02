@@ -28,12 +28,8 @@ sceneManager.scene.add(inputManager.controls.getObject());
 // --- World Generation Helpers ---
 function createStaticWorld() {
     // Ground
-    const size = 100;
-    for (let x = -size / 2; x < size / 2; x++) {
-        for (let z = -size / 2; z < size / 2; z++) {
-            sceneManager.createBlock(x, -1, z, 'grass', sceneManager.worldGroup);
-        }
-    }
+    const size = 1000;
+    sceneManager.createInfiniteGround(size);
 
     // Sun
     const sunGeom = new BoxGeometry(10, 10, 10);

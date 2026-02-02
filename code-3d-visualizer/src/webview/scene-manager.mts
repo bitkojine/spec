@@ -12,7 +12,9 @@ import {
     DirectionalLight,
     BoxGeometry,
     MeshLambertMaterial,
-    Mesh
+    Mesh,
+    PlaneGeometry,
+    RepeatWrapping
 } from 'three';
 import { MATERIALS } from './texture-generator.mjs';
 import { PHYSICS } from './types.mjs';
@@ -71,5 +73,26 @@ export class SceneManager {
         cube.receiveShadow = true;
         group.add(cube);
         return cube;
+    }
+
+    public createInfiniteGround(size: number): void {
+        const geometry = new PlaneGeometry(size, size);
+        const baseMaterial = MATERIALS.grass[2]; // Use the top texture only
+
+        // Clone material and texture to modify repeat wrapping without affecting other blocks
+        const material = baseMaterial.clone();
+        if (material.map) {
+            material.map = material.map.clone();
+            material.map.wrapS = RepeatWrapping;
+            material.map.wrapT = RepeatWrapping;
+            material.map.repeat.set(size, size);
+            material.map.needsUpdate = true;
+        }
+
+        const plane = new Mesh(geometry, material);
+        plane.rotation.x = -Math.PI / 2;
+        plane.position.y = -0.501; // Slightly lower than -0.5 to avoid z-fighting if blocks are placed exactly
+        plane.receiveShadow = true;
+        this.worldGroup.add(plane);
     }
 }

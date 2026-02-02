@@ -39,17 +39,25 @@ export class TextureGenerator {
     }
 
     public getGrassMaterial(): MeshLambertMaterial[] {
+        // --- TOP TEXTURE ---
         this.createNoise('#32CD32', 0.1);
         this.ctx.fillStyle = '#228B22';
         for (let i = 0; i < 20; i++) {
             this.ctx.fillRect(Math.floor(Math.random() * 8) * 8, Math.floor(Math.random() * 8) * 8, 4, 4);
         }
 
-        const top = new CanvasTexture(this.canvas);
+        // Capture canvas state for top texture
+        const topCanvas = document.createElement('canvas');
+        topCanvas.width = 64;
+        topCanvas.height = 64;
+        topCanvas.getContext('2d')!.drawImage(this.canvas, 0, 0);
+
+        const top = new CanvasTexture(topCanvas);
         top.magFilter = NearestFilter;
         top.colorSpace = SRGBColorSpace;
         const topMat = new MeshLambertMaterial({ map: top });
 
+        // --- SIDE TEXTURE ---
         this.createNoise('#8B4513', 0.15);
         this.ctx.fillStyle = '#32CD32';
         this.ctx.fillRect(0, 0, 64, 16);
@@ -57,12 +65,21 @@ export class TextureGenerator {
             if (Math.random() > 0.5) this.ctx.fillRect(x, 16, 8, 8);
         }
 
-        const side = new CanvasTexture(this.canvas);
+        // Capture canvas state for side texture
+        const sideCanvas = document.createElement('canvas');
+        sideCanvas.width = 64;
+        sideCanvas.height = 64;
+        sideCanvas.getContext('2d')!.drawImage(this.canvas, 0, 0);
+
+        const side = new CanvasTexture(sideCanvas);
         side.magFilter = NearestFilter;
         side.colorSpace = SRGBColorSpace;
         const sideMat = new MeshLambertMaterial({ map: side });
 
+        // --- BOTTOM TEXTURE ---
+        // createSimpleMaterial creates its own canvas, so it's safe
         const dirtMat = this.createSimpleMaterial('#8B4513', 0.15);
+
         return [sideMat, sideMat, topMat, dirtMat, sideMat, sideMat];
     }
 

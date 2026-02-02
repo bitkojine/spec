@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.61",
+  "version": "0.0.63",
   "type": "module",
   "repository": {
     "type": "git",
