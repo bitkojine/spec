@@ -1,17 +1,44 @@
 
+# VSCode and test files
 .vscode/**
 .vscode-test/**
 out/**
+
+# Source files
 src/**
+**/*.ts
+**/*.test.ts
+**/*.js.map
+
+# Dependencies and lock files
+node_modules/**
+package-lock.json
+
+# Development configs
 .gitignore
 .eslintrc.json
 tsconfig.json
-package-lock.json
-package.json
-vsc-extension-quickstart.md
-README.md
-**/*.js.map
-**/*.ts
-**/*.test.ts
-node_modules/**
+
+# Build and development artifacts
+logs/**
+build_error.log
+scripts/**
+demo/**
+elk/**
+.github/**
+docker-compose.elk.yml
+esbuild.mts
 esbuild.js
+
+# Documentation and specs
+specs/**
+docs/**
+ELK_INTEGRATION_COMPLETE.md
+vsc-extension-quickstart.md
+
+# Package files (keep package.json for extension metadata)
+# README.md and LICENSE are required for marketplace
+
+# Dist cleanup
+dist/webviewScript.js
+**/*.map
