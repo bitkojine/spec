@@ -1,5 +1,5 @@
 /**
- * @file option.cts
+ * @file option.mts
  * @description Functional Option type (Some or None) for representing the presence or absence of a value.
  */
 

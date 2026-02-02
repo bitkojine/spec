@@ -10,7 +10,7 @@ import { ExtensionToWebviewMessage, Block } from '../common/contract.cjs';
 import { managedDelay } from '../common/utils.cjs';
 import { logger, setLogger } from '../common/logger.cjs';
 import { WebviewLogger } from './webview-logger.mjs';
-import { some, none } from '../common/option.cjs';
+import { some, none } from '../common/option.mjs';
 import { PerformanceMetrics } from '../common/performance-metrics.cjs';
 
 declare function acquireVsCodeApi(): VSCodeApi;

@@ -6,7 +6,7 @@
 import { ILogger } from '../common/logger.cjs';
 import { Severity, WebviewToExtensionMessage } from '../common/contract.cjs';
 import { VSCodeApi } from './types.mjs';
-import { Option } from '../common/option.cjs';
+import { Option } from '../common/option.mjs';
 
 export class WebviewLogger implements ILogger {
     constructor(
