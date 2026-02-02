@@ -206,6 +206,31 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
                         letter-spacing: 2px;
                         margin-bottom: 12px;
                     }
+
+                    #fps-counter {
+                        position: fixed;
+                        top: var(--ui-spacing);
+                        right: var(--ui-spacing);
+                        z-index: 5;
+                        background: var(--glass-bg);
+                        backdrop-filter: blur(16px);
+                        -webkit-backdrop-filter: blur(16px);
+                        border: 1px solid var(--glass-border);
+                        border-radius: 8px;
+                        padding: 8px 12px;
+                        font-family: 'JetBrains Mono', monospace;
+                        font-size: 12px;
+                        color: var(--text-secondary);
+                        display: flex;
+                        gap: 8px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                        pointer-events: none;
+                    }
+
+                    #fps-value {
+                        color: var(--accent-color);
+                        font-weight: 700;
+                    }
                 </style>
             </head>
             <body>
@@ -217,6 +242,11 @@ export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.
                 </div>
 
                 <div id="crosshair"></div>
+
+                <div id="fps-counter">
+                    <span>FPS</span>
+                    <span id="fps-value">--</span>
+                </div>
 
                 <div id="ui-layer">
                     <div class="ui-card" id="info-box">

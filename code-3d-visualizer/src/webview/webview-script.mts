@@ -121,9 +121,14 @@ function animate() {
     const delta = (time - prevTime) / 1000;
     frameCount++;
 
-    // Track FPS every 1.5 seconds (high resolution for short tests)
-    if (time - lastFpsLog > 1500) {
+    // Track FPS every 0.5 seconds
+    if (time - lastFpsLog > 500) {
         const fps = (frameCount * 1000) / (time - lastFpsLog);
+        const fpsElem = document.getElementById('fps-value');
+        if (fpsElem) {
+            fpsElem.textContent = fps.toFixed(0);
+        }
+
         const currentMem = typeof performance !== 'undefined' && 'memory' in performance
             ? (performance as unknown as { memory: { usedJSHeapSize: number } }).memory.usedJSHeapSize
             : 0;
