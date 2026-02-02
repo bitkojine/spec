@@ -34,7 +34,15 @@ export class StructuredLogger {
 
         // In production, this would go to a log aggregator. 
         // For VSCode, we output JSON string to the output channel.
-        this.outputChannel.appendLine(JSON.stringify(entry));
+        const payload = JSON.stringify(entry);
+        this.outputChannel.appendLine(payload);
+
+        // ALWAYS write to console as well if we are in a test/dev environment 
+        // so that cli-to-elk.mjs can capture the logs from the spawned process.
+        if (process.env.STRESS_TEST === 'true' || process.env.LOG_LEVEL === 'debug') {
+            /* eslint-disable-next-line no-console -- Required for ELK transport via stdout to capture extension host logs during tests */
+            console.log(payload);
+        }
 
         if (level === "ERROR" || level === "FATAL") {
             this.outputChannel.show(true);

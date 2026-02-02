@@ -94,5 +94,5 @@ export function isExtensionMessage(data: unknown): data is ExtensionToWebviewMes
 export function isWebviewMessage(data: unknown): data is WebviewToExtensionMessage {
     if (typeof data !== "object" || !data) return false;
     const msg = data as Record<string, unknown>;
-    return ["READY", "OBJECT_CLICKED", "VISUAL_REPORT"].includes(msg.type as string);
+    return ["READY", "OBJECT_CLICKED", "VISUAL_REPORT", "LOG"].includes(msg.type as string);
 }

@@ -2,7 +2,7 @@
   "name": "code-3d-visualizer",
   "displayName": "Code 3D Visualizer",
   "description": "Visualize your codebase in 3D",
-  "version": "0.0.49",
+  "version": "0.0.56",
   "type": "module",
   "repository": {
     "type": "git",
@@ -47,13 +47,13 @@
     "test:debug": "LOG_LEVEL=debug node scripts/cli-to-elk.mjs node ./out/test/runTest.cjs",
     "test:local": "LOG_LEVEL=info node ./out/test/runTest.cjs 2>&1 | node scripts/log-aggregator.mjs",
     "test:stress": "STRESS_TEST=true LOG_LEVEL=info node scripts/cli-to-elk.mjs node ./out/test/runTest.cjs",
+    "test:perf": "node scripts/perf-benchmark.mjs",
     "logs:tail": "curl -s 'http://localhost:9200/code-visualizer-logs-*/_search?pretty&sort=@timestamp:desc' | node -e \"process.stdin.on('data', d => { const hits = JSON.parse(d.toString()).hits.hits; hits.forEach(h => console.log(JSON.stringify(h._source, null, 2))); })\"",
     "logs:errors": "curl -s 'http://localhost:9200/code-visualizer-logs-*/_search?q=level:ERROR&pretty&sort=@timestamp:desc' | node -e \"process.stdin.on('data', d => { const hits = JSON.parse(d.toString()).hits.hits; hits.forEach(h => console.log(JSON.stringify(h._source, null, 2))); })\"",
     "logs:clean": "node scripts/cli-to-elk.mjs rm -f logs/*.log",
     "elk:start": "node scripts/cli-to-elk.mjs ./scripts/elk.sh start",
     "elk:stop": "node scripts/cli-to-elk.mjs ./scripts/elk.sh stop",
     "elk:status": "node scripts/cli-to-elk.mjs ./scripts/elk.sh status",
-    "elk:logs": "node scripts/cli-to-elk.mjs ./scripts/elk.sh logs",
     "elk:setup": "node scripts/cli-to-elk.mjs ./scripts/elk.sh setup",
     "version:bump": "node scripts/cli-to-elk.mjs npm version patch --no-git-tag-version",
     "install:local": "node scripts/cli-to-elk.mjs npm run version:bump && rm -f *.vsix && node scripts/cli-to-elk.mjs vsce package --allow-missing-repository && node scripts/cli-to-elk.mjs code --install-extension *.vsix --force && node scripts/cli-to-elk.mjs code ."
