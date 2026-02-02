@@ -11,6 +11,7 @@ import { managedDelay } from '../common/utils.cjs';
 import { logger, setLogger } from '../common/logger.cjs';
 import { WebviewLogger } from './webview-logger.mjs';
 import { some, none } from '../common/option.cjs';
+import { PerformanceMetrics } from '../common/performance-metrics.cjs';
 
 declare function acquireVsCodeApi(): VSCodeApi;
 const vscode = typeof acquireVsCodeApi === 'function' ? some(acquireVsCodeApi()) : none();
@@ -84,9 +85,11 @@ window.addEventListener('message', async (event: MessageEvent<ExtensionToWebview
                 sceneManager.codeGroup.remove(sceneManager.codeGroup.children[0]);
             }
 
-            message.payload.blocks.forEach((block: Block) => {
-                sceneManager.createBlock(block.position.x, block.position.y, block.position.z, block.type, sceneManager.codeGroup);
-            });
+            await PerformanceMetrics.measure("UPDATE_SCENE", async () => {
+                message.payload.blocks.forEach((block: Block) => {
+                    sceneManager.createBlock(block.position.x, block.position.y, block.position.z, block.type, sceneManager.codeGroup);
+                });
+            }, { blockCount: message.payload.blocks.length });
 
             await managedDelay(500);
             runVisualCheck();
@@ -108,10 +111,28 @@ vscode.forEach(api => api.postMessage({ type: 'READY' }));
 
 // --- Animation Loop ---
 let prevTime = performance.now();
+let frameCount = 0;
+let lastFpsLog = performance.now();
+
 function animate() {
     requestAnimationFrame(animate);
     const time = performance.now();
     const delta = (time - prevTime) / 1000;
+    frameCount++;
+
+    // Track FPS every 5 seconds
+    if (time - lastFpsLog > 5000) {
+        const fps = (frameCount * 1000) / (time - lastFpsLog);
+        logger.info(`Webview FPS: ${fps.toFixed(1)}`, {
+            perf: {
+                operation: "WEBVIEW_FPS",
+                duration: 1000 / fps, // ms per frame
+                context: { fps, frameCount }
+            }
+        });
+        frameCount = 0;
+        lastFpsLog = time;
+    }
 
     inputManager.update(delta);
     sceneManager.renderer.render(sceneManager.scene, sceneManager.camera);

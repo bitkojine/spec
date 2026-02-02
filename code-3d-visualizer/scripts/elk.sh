@@ -63,25 +63,42 @@ case "$1" in
             sleep 5
         done
         
-        # Create index pattern for Kibana
-        echo "📈 Creating Kibana index pattern..."
-        curl -X POST "localhost:5601/api/saved_objects/_import" \
+        # Create index patterns for Kibana
+        echo "📈 Creating Kibana index patterns..."
+        
+        # Logs pattern
+        curl -X POST "localhost:5601/api/saved_objects/index-pattern/logs-pattern" \
             -H "kbn-xsrf: true" \
             -H "Content-Type: application/json" \
             -d '{
-                "objects": [{
-                    "id": "code-visualizer-logs-*",
-                    "type": "index-pattern",
-                    "attributes": {
-                        "title": "code-visualizer-logs-*",
-                        "timeFieldName": "@timestamp"
-                    }
-                }]
-            }' || echo "⚠️  Index pattern creation failed (create manually in Kibana)"
+                "attributes": {
+                    "title": "code-visualizer-logs-*",
+                    "timeFieldName": "@timestamp"
+                }
+            }' || echo "⚠️  Logs index pattern creation failed"
+
+        # Perf pattern
+        curl -X POST "localhost:5601/api/saved_objects/index-pattern/perf-pattern" \
+            -H "kbn-xsrf: true" \
+            -H "Content-Type: application/json" \
+            -d '{
+                "attributes": {
+                    "title": "code-visualizer-perf-*",
+                    "timeFieldName": "@timestamp"
+                }
+            }' || echo "⚠️  Perf index pattern creation failed"
+        
+        # Dashboard Import
+        if [ -f "$ELK_DIR/elk/kibana/dashboards/performance.ndjson" ]; then
+            echo "📊 Importing Performance Dashboard..."
+            curl -X POST "localhost:5601/api/saved_objects/_import?overwrite=true" \
+                -H "kbn-xsrf: true" \
+                --form "file=@$ELK_DIR/elk/kibana/dashboards/performance.ndjson" || echo "⚠️  Dashboard import failed"
+        fi
         
         echo "✅ ELK Stack setup complete!"
         echo "📊 Open Kibana: http://localhost:5601"
-        echo "🔍 Go to Discover -> Create index pattern: code-visualizer-logs-*"
+        echo "🔍 Go to Discover -> Create index pattern: code-visualizer-logs-* and code-visualizer-perf-*"
         ;;
         
     *)
