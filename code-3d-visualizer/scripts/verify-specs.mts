@@ -9,13 +9,30 @@ import { readFile } from 'node:fs/promises';
 
 async function main() {
     let exitCode = 0;
+    const correlationId = `spec-check-${Date.now()}`;
 
-    // 1. Verify Bug-First Metadata in Tests
-    /* eslint-disable no-console -- CLI tool output for user feedback */
-    console.log("Running Specification Verification...");
+    const log = (level: "INFO" | "ERROR", message: string, context?: Record<string, unknown>) => {
+        const entry: Record<string, unknown> = {
+            "@timestamp": new Date().toISOString(),
+            level,
+            message,
+            context
+        };
+        // Use index access to satisfy strict naming-convention while meeting external spec
+        entry["service_id"] = "SpecVerifier";
+        entry["correlation_id"] = correlationId;
 
-    // 1. Verify Bug-First Metadata in Tests
-    console.log("Checking for Bug-First metadata in tests...");
+        if (level === "ERROR") {
+            /* eslint-disable-next-line no-console -- Required for structured log output to stdout/stderr */
+            console.error(JSON.stringify(entry));
+        } else {
+            /* eslint-disable-next-line no-console -- Required for structured log output to stdout/stderr */
+            console.log(JSON.stringify(entry));
+        }
+    };
+
+    log("INFO", "Running Specification Verification...");
+    log("INFO", "Checking for Bug-First metadata in tests...");
     const testFiles = await glob('src/test/**/*.test.{mts,cts}');
 
     for (const file of testFiles) {
@@ -25,38 +42,23 @@ async function main() {
         const hasPreventedBehavior = content.includes('@prevented_behavior');
 
         if (!hasBug || !hasFailureCause || !hasPreventedBehavior) {
-            const errorLog = {
-                timestamp: new Date().toISOString(),
-                level: "ERROR",
-                service: "SpecVerifier",
-                message: "Missing Bug-First metadata",
-                context: {
-                    file,
-                    hasBug,
-                    hasFailureCause,
-                    hasPreventedBehavior
-                }
-            };
-            console.error(JSON.stringify(errorLog));
+            log("ERROR", "Missing Bug-First metadata", {
+                file,
+                hasBug,
+                hasFailureCause,
+                hasPreventedBehavior
+            });
             exitCode = 1;
         }
     }
 
-    // 2. Verify all files have file-level description/file tags
-    console.log("Checking for file-level headers...");
+    log("INFO", "Checking for file-level headers...");
     const srcFiles = await glob('src/**/*.{mts,cts}');
 
     for (const file of srcFiles) {
         const content = await readFile(file, 'utf-8');
         if (!content.includes('@file')) {
-            const errorLog = {
-                timestamp: new Date().toISOString(),
-                level: "ERROR",
-                service: "SpecVerifier",
-                message: "Missing @file header",
-                context: { file }
-            };
-            console.error(JSON.stringify(errorLog));
+            log("ERROR", "Missing @file header", { file });
             exitCode = 1;
         }
 
@@ -68,55 +70,35 @@ async function main() {
                 file.includes('test'); // Tests might use them for mocking time if absolutely necessary, though discouraged
 
             if (!isAllowed) {
-                const errorLog = {
-                    timestamp: new Date().toISOString(),
-                    level: "ERROR",
-                    service: "SpecVerifier",
-                    message: "Unmanaged timers found",
-                    context: { file }
-                };
-                console.error(JSON.stringify(errorLog));
+                log("ERROR", "Unmanaged timers found", { file });
                 exitCode = 1;
             }
         }
     }
 
     if (exitCode === 0) {
-        const successLog = {
-            timestamp: new Date().toISOString(),
-            level: "INFO",
-            service: "SpecVerifier",
-            message: "All specification checks passed"
-        };
-        console.log(JSON.stringify(successLog));
+        log("INFO", "All specification checks passed");
     } else {
-        const failureLog = {
-            timestamp: new Date().toISOString(),
-            level: "ERROR",
-            service: "SpecVerifier",
-            message: "Specification checks failed",
-            context: { exitCode }
-        };
-        console.error(JSON.stringify(failureLog));
+        log("ERROR", "Specification checks failed", { exitCode });
     }
-    /* eslint-enable no-console -- Restoring console check after main CLI logic. */
 
     process.exit(exitCode);
 }
 
 main().catch(err => {
-    /* eslint-disable no-console -- Critical internal errors must be visible */
-    const errorLog = {
-        timestamp: new Date().toISOString(),
+    const correlationId = `spec-check-err-${Date.now()}`;
+    const entry: Record<string, unknown> = {
+        "@timestamp": new Date().toISOString(),
         level: "ERROR",
-        service: "SpecVerifier",
         message: "Internal error during specification verification",
         context: {
             error: err instanceof Error ? err.message : String(err),
             stack: err instanceof Error ? err.stack : undefined
         }
     };
-    console.error(JSON.stringify(errorLog));
-    /* eslint-enable no-console -- Restoring console check. */
+    entry["service_id"] = "SpecVerifier";
+    entry["correlation_id"] = correlationId;
+    /* eslint-disable-next-line no-console -- Critical internal error visibility */
+    console.error(JSON.stringify(entry));
     process.exit(1);
 });

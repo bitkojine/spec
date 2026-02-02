@@ -8,9 +8,10 @@ import dgram from 'dgram';
 import { createWriteStream } from 'fs';
 
 export interface LogEntry {
-    timestamp: string;
+    "@timestamp": string;
     level: "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
-    service: string;
+    serviceId: string;
+    correlationId: string;
     message: string;
     context?: Record<string, unknown>;
 }
@@ -61,10 +62,9 @@ export class ElkTransport {
         }
 
         try {
-            const elkLogEntry = {
-                timestamp: logEntry.timestamp,
+            const elkLogEntry: Record<string, unknown> = {
+                "@timestamp": logEntry["@timestamp"],
                 level: logEntry.level,
-                service: logEntry.service,
                 message: logEntry.message,
                 application: "code-3d-visualizer",
                 context: logEntry.context,
@@ -74,9 +74,12 @@ export class ElkTransport {
                     version: "1.0.0"
                 }
             };
+            // Use index access to satisfy strict naming-convention while meeting external spec
+            elkLogEntry["service_id"] = logEntry.serviceId;
+            elkLogEntry["correlation_id"] = logEntry.correlationId;
 
             const message = Buffer.from(JSON.stringify(elkLogEntry) + '\n');
-            
+
             this.client.send(message, this.config.logstashPort, this.config.logstashHost, (_err) => {
                 if (_err) {
                     this.errorCount++;
@@ -86,7 +89,7 @@ export class ElkTransport {
                     this.sentCount++;
                 }
             });
-            
+
             // Always write to backup file
             this.logFile.write(JSON.stringify(elkLogEntry) + '\n');
         } catch {

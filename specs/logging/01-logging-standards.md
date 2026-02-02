@@ -26,7 +26,7 @@ Ad-hoc console output is strictly prohibited in production environments. All dia
 ### 3.3. Log Structure and Levels
 *   **Format**: All logs MUST be emitted in a structured JSON format.
 *   **Standard Fields**: Every log entry MUST include:
-    *   `timestamp`: ISO 8601 format.
+    *   `@timestamp`: ISO 8601 format (idiomatic for ELK indexing).
     *   `level`: One of `DEBUG`, `INFO`, `WARN`, `ERROR`, `FATAL`.
     *   `service_id`: Unique identifier for the emitting service.
     *   `correlation_id`: For tracing requests across distributed components.

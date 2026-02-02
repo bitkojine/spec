@@ -32,14 +32,14 @@ export class VisualizerWebviewProvider {
                 logger.info("Received visual report from webview", data.payload);
             } else if (data.type === "LOG") {
                 // Forward webview log to centralized extension logger
-                const { severity, message, context } = data.payload;
-                const enrichedContext = { ...context, source: "webview" };
-                switch (severity) {
-                    case "DEBUG": logger.debug(message, enrichedContext); break;
-                    case "INFO": logger.info(message, enrichedContext); break;
-                    case "WARN": logger.warn(message, enrichedContext); break;
+                const { level, message, context, correlationId, serviceId } = data.payload;
+                const enrichedContext = { ...context, originalServiceId: serviceId };
+                switch (level) {
+                    case "DEBUG": logger.debug(message, enrichedContext, correlationId); break;
+                    case "INFO": logger.info(message, enrichedContext, correlationId); break;
+                    case "WARN": logger.warn(message, enrichedContext, correlationId); break;
                     case "ERROR":
-                    case "FATAL": logger.error(message, enrichedContext); break;
+                    case "FATAL": logger.error(message, enrichedContext, correlationId); break;
                 }
             }
         } else if (isExtensionMessage(data)) {

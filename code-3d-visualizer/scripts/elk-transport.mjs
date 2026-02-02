@@ -36,18 +36,18 @@ function sendToElk(data) {
         const logEntry = {
             "@timestamp": new Date().toISOString(),
             level: data.level || "INFO",
-            service: data.service || "CLI",
-            message: data.message || "Command output",
+            "service_id": data.serviceId || data.service_id || data.service || "CLI",
+            "correlation_id": data.correlationId || data.correlation_id || `tran-${Date.now()}`,
+            message: data.message || "Transport event",
             application: "code-3d-visualizer",
             context: {
-                command: command.join(' '),
                 pid: process.pid,
                 ...data.context
             },
             transport: {
                 timestamp: new Date().toISOString(),
                 source: "elk-transport",
-                version: "1.0.0"
+                version: "1.7.0"
             }
         };
 
@@ -61,7 +61,7 @@ function sendToElk(data) {
                 sentCount++;
             }
         });
-        
+
         // Always write to backup file
         logFile.write(JSON.stringify(logEntry) + '\n');
     } catch (err) {
@@ -83,12 +83,12 @@ process.stdin.on('data', (/** @type {string} */ chunk) => {
     buffer += chunk;
     const lines = buffer.split('\n');
     buffer = lines.pop() || ''; // Keep incomplete line in buffer
-    
+
     lines.forEach(line => {
         if (line.trim()) {
             try {
                 const logEntry = JSON.parse(line);
-                
+
                 // Add transport metadata
                 const enrichedLog = {
                     ...logEntry,
@@ -98,7 +98,7 @@ process.stdin.on('data', (/** @type {string} */ chunk) => {
                         version: '1.0.0'
                     }
                 };
-                
+
                 // Send to Logstash via UDP
                 const message = Buffer.from(JSON.stringify(enrichedLog) + '\n');
                 client.send(message, LOGSTASH_PORT, LOGSTASH_HOST, (err) => {
@@ -110,10 +110,10 @@ process.stdin.on('data', (/** @type {string} */ chunk) => {
                         sentCount++;
                     }
                 });
-                
+
                 // Also write to backup file
                 logFile.write(JSON.stringify(enrichedLog) + '\n');
-                
+
             } catch {
                 // eslint-disable-next-line no-console -- Error reporting
                 console.error('Failed to parse log line:', line);
@@ -134,12 +134,12 @@ process.stdin.on('end', () => {
             console.error('Failed to parse final log line:', buffer);
         }
     }
-    
+
     // Wait a moment for final sends
     setTimeout(() => {
         client.close();
         logFile.end();
-        
+
         // eslint-disable-next-line no-console -- Metrics reporting
         console.log(`ELK Transport Summary: ${sentCount} sent, ${errorCount} errors`);
     }, 1000);

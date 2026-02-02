@@ -8,29 +8,30 @@ import { initializeElkTransport, sendToElk, LogEntry } from './elk-transport.cjs
 import { ILogger } from './logger.cjs';
 
 export class NodeElkLogger implements ILogger {
-    constructor(private serviceName: string) { 
+    constructor(private serviceName: string) {
         // Initialize ELK transport - will crash if this fails
         initializeElkTransport({
             enabled: true // Force enabled - no fallback
         });
     }
 
-    private log(level: Severity, message: string, context?: Record<string, unknown>): void {
+    private log(level: Severity, message: string, context?: Record<string, unknown>, correlationId?: string): void {
         const timestamp = new Date().toISOString();
 
         // Send to ELK stack - if this fails, let it crash
         const elkEntry: LogEntry = {
-            timestamp,
+            "@timestamp": timestamp,
             level,
-            service: this.serviceName,
+            serviceId: this.serviceName,
+            correlationId: correlationId || `node-${process.pid}-${Date.now()}`,
             message,
             context
         };
         sendToElk(elkEntry);
     }
 
-    debug(message: string, context?: Record<string, unknown>): void { this.log("DEBUG", message, context); }
-    info(message: string, context?: Record<string, unknown>): void { this.log("INFO", message, context); }
-    warn(message: string, context?: Record<string, unknown>): void { this.log("WARN", message, context); }
-    error(message: string, context?: Record<string, unknown>): void { this.log("ERROR", message, context); }
+    debug(message: string, context?: Record<string, unknown>, cid?: string): void { this.log("DEBUG", message, context, cid); }
+    info(message: string, context?: Record<string, unknown>, cid?: string): void { this.log("INFO", message, context, cid); }
+    warn(message: string, context?: Record<string, unknown>, cid?: string): void { this.log("WARN", message, context, cid); }
+    error(message: string, context?: Record<string, unknown>, cid?: string): void { this.log("ERROR", message, context, cid); }
 }

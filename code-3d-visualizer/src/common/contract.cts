@@ -9,10 +9,12 @@ export type Severity = "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
 export interface LogMessage {
     type: "LOG";
     payload: {
-        severity: Severity;
+        level: Severity;
+        serviceId: string;
+        correlationId: string;
         message: string;
         context?: Record<string, unknown>;
-        timestamp: string;
+        "@timestamp": string;
     };
 }
 

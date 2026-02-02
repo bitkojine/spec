@@ -96,6 +96,22 @@
                             "UPPER_CASE"
                         ],
                         "leadingUnderscore": "allow"
+                    },
+                    {
+                        "selector": "property",
+                        "format": null,
+                        "filter": {
+                            "regex": "^@timestamp$",
+                            "match": true
+                        }
+                    },
+                    {
+                        "selector": "typeProperty",
+                        "format": null,
+                        "filter": {
+                            "regex": "^@timestamp$",
+                            "match": true
+                        }
                     }
                 ]
             }

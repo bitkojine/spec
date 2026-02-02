@@ -74,7 +74,9 @@ function sendToElk(data, isAlreadyStructured = false) {
         if (isAlreadyStructured) {
             logEntry = {
                 ...data,
-                "@timestamp": data.timestamp || new Date().toISOString(),
+                "@timestamp": data["@timestamp"] || data.timestamp || new Date().toISOString(),
+                "service_id": data.serviceId || data.service_id || data.service || "CLI",
+                "correlation_id": data.correlationId || data.correlation_id || BUILD_ID,
                 context: {
                     ...data.context,
                     build_id: BUILD_ID,
@@ -83,14 +85,20 @@ function sendToElk(data, isAlreadyStructured = false) {
                 transport: {
                     timestamp: new Date().toISOString(),
                     source: "cli-to-elk-unwrapped",
-                    version: "1.4.0"
+                    version: "1.7.0"
                 }
             };
+            // Clean up old fields if present
+            delete logEntry.service;
+            delete logEntry.serviceId;
+            delete logEntry.correlationId;
+            delete logEntry.timestamp;
         } else {
             logEntry = {
                 "@timestamp": new Date().toISOString(),
                 level: data.level || "INFO",
-                service: "CLI",
+                "service_id": "CLI",
+                "correlation_id": BUILD_ID,
                 message: data.message || "Command output",
                 application: "code-3d-visualizer",
                 context: {
@@ -103,7 +111,7 @@ function sendToElk(data, isAlreadyStructured = false) {
                 transport: {
                     timestamp: new Date().toISOString(),
                     source: "cli-to-elk-wrapped",
-                    version: "1.4.0"
+                    version: "1.7.0"
                 }
             };
         }
