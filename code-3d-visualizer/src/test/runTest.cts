@@ -24,7 +24,7 @@ async function main(): Promise<void> {
             launchArgs: [workspacePath]
         });
     } catch (err) {
-        // eslint-disable-next-line no-console
+        // eslint-disable-next-line no-console -- Disabling because this is a bootstrap script where console output is required for fatal error visibility.
         console.error('Failed to run tests', err);
         process.exit(1);
     }

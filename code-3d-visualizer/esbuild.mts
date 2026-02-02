@@ -64,14 +64,20 @@ async function main() {
     if (watch) {
         await Promise.all([extensionCtx.watch(), webviewCtx.watch()]);
     } else {
-        await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()]);
-        await Promise.all([extensionCtx.dispose(), webviewCtx.dispose()]);
+        try {
+            await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()]);
+        } catch (err) {
+            // eslint-disable-next-line no-console -- Disabling because this is a build script where terminal output is the primary interface.
+            console.error("Build failed:", err);
+            process.exit(1);
+        } finally {
+            await Promise.all([extensionCtx.dispose(), webviewCtx.dispose()]);
+        }
     }
 }
 
 main().catch(e => {
-    // Disabling no-console because this is the build entry point and errors must be visible in the terminal.
-    // eslint-disable-next-line no-console
+    // eslint-disable-next-line no-console -- Disabling because this is the build entry point and errors must be visible in the terminal.
     console.error(e);
     process.exit(1);
 });

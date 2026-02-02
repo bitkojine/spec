@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import { logger } from '../common/logger.cjs';
+import './extension-logger.cjs'; // Initialize extension-specific logger
 import { VisualizerWebviewProvider } from './webview-provider.cjs';
 import { FileParser } from './parser.cjs';
 import { VisualizerError } from '../common/errors.cjs';

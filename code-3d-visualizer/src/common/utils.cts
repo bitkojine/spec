@@ -3,9 +3,11 @@
  * @description Common utility functions for the Code 3D Visualizer.
  */
 
+import { taskTracker } from './background-task-tracker.cjs';
+
 /**
  * A managed delay that supports cancellation via AbortSignal.
- * Complies with concurrency/01-async-safety.md by avoiding unmanaged timers.
+ * Complies with concurrency/01-async-safety.md by using a managed task tracker.
  * 
  * @param ms - Milliseconds to delay.
  * @param signal - Optional AbortSignal to cancel the delay.
@@ -17,14 +19,13 @@ export function managedDelay(ms: number, signal?: AbortSignal): Promise<void> {
             return reject(new Error("Operation cancelled"));
         }
 
-        // eslint-disable-next-line no-restricted-globals
-        const timer = setTimeout(() => {
+        const timer = taskTracker.setTimeout(() => {
             resolve();
             cleanup();
         }, ms);
 
         const onAbort = () => {
-            clearTimeout(timer);
+            timer.cancel();
             reject(new Error("Operation cancelled"));
             cleanup();
         };
