@@ -4,97 +4,67 @@
  * Following architecture/01-contracts.md.
  */
 
+import {
+    ExtensionToWebviewMessageSchema,
+    WebviewToExtensionMessageSchema,
+    type ExtensionToWebviewMessage as ExtensionToWebviewMessageType,
+    type WebviewToExtensionMessage as WebviewToExtensionMessageType,
+    type Block as SchemaBlock,
+    type BlockType as SchemaBlockType,
+    type VisualReportMessage as VisualReportMessageType,
+    type LogMessage as LogMessageType
+} from '../../contracts/messages/v1.schema.cjs';
+
+export { ExtensionToWebviewMessageSchema, WebviewToExtensionMessageSchema };
+
 export type Severity = "DEBUG" | "INFO" | "WARN" | "ERROR" | "FATAL";
 
-export interface LogMessage {
-    type: "LOG";
-    payload: {
-        level: Severity;
-        serviceId: string;
-        correlationId: string;
-        message: string;
-        context?: Record<string, unknown>;
-        "@timestamp": string;
-    };
-}
-
-export type BlockType = 'grass' | 'dirt' | 'stone' | 'wood' | 'leaf' | 'cloud' | 'class_block' | 'function_block' | 'variable_block';
-
-export interface Block {
-    id: string;
-    type: BlockType;
-    position: { x: number; y: number; z: number };
-    metadata?: {
-        name: string;
-        originalType?: string;
-    };
-    color?: number; // Optional override (Hex)
-}
-
-export interface UpdateSceneMessage {
-    type: "UPDATE_SCENE";
-    payload: {
-        blocks: Block[];
-        originFile: string;
-    };
-}
-
-export interface ErrorMessage {
-    type: "ERROR";
-    payload: {
-        code: string;
-        message: string;
-        retryable: boolean;
-    };
-}
-
-export interface ProgressMessage {
-    type: "PROGRESS";
-    payload: {
-        message: string;
-        increment: number;
-        totalFiles?: number;
-        currentFile?: number;
-    };
-}
+export type BlockType = SchemaBlockType;
+export type Block = SchemaBlock;
+export type LogMessage = LogMessageType;
+export type UpdateSceneMessage = Extract<ExtensionToWebviewMessageType, { type: "UPDATE_SCENE" }>;
+export type ErrorMessage = Extract<ExtensionToWebviewMessageType, { type: "ERROR" }>;
+export type ProgressMessage = Extract<ExtensionToWebviewMessageType, { type: "PROGRESS" }>;
+export type VisualReportMessage = VisualReportMessageType;
 
 /**
  * Union of all messages that can be sent FROM the Extension TO the Webview.
  */
-export type ExtensionToWebviewMessage =
-    | LogMessage
-    | UpdateSceneMessage
-    | ErrorMessage
-    | ProgressMessage;
-
-export interface VisualReportMessage {
-    type: "VISUAL_REPORT";
-    payload: {
-        hasPixels: boolean;
-        pixelCount?: number;
-    };
-}
+export type ExtensionToWebviewMessage = ExtensionToWebviewMessageType;
 
 /**
  * Union of all messages that can be sent FROM the Webview TO the Extension.
  */
-export type WebviewToExtensionMessage =
-    | { type: "READY" }
-    | { type: "OBJECT_CLICKED"; payload: { id: string } }
-    | VisualReportMessage
-    | LogMessage;
+export type WebviewToExtensionMessage = WebviewToExtensionMessageType;
 
 /**
- * Type guard for Extension messages.
+ * Type guard for Extension messages with runtime validation.
  */
 export function isExtensionMessage(data: unknown): data is ExtensionToWebviewMessage {
-    if (typeof data !== "object" || !data) return false;
-    const msg = data as Record<string, unknown>;
-    return ["LOG", "UPDATE_SCENE", "ERROR", "PROGRESS"].includes(msg.type as string);
+    const result = ExtensionToWebviewMessageSchema.safeParse(data);
+    return result.success;
 }
 
+/**
+ * Type guard for Webview messages with runtime validation.
+ */
 export function isWebviewMessage(data: unknown): data is WebviewToExtensionMessage {
-    if (typeof data !== "object" || !data) return false;
-    const msg = data as Record<string, unknown>;
-    return ["READY", "OBJECT_CLICKED", "VISUAL_REPORT", "LOG"].includes(msg.type as string);
+    const result = WebviewToExtensionMessageSchema.safeParse(data);
+    return result.success;
+}
+
+/**
+ * Strict parser for Extension messages.
+ * Fails fast if the data does not match the contract.
+ */
+export function parseExtensionMessage(data: unknown): ExtensionToWebviewMessage {
+    return ExtensionToWebviewMessageSchema.parse(data);
+}
+
+/**
+ * Strict parser for Webview messages.
+ * Fails fast if the data does not match the contract.
+ */
+export function parseWebviewMessage(data: unknown): WebviewToExtensionMessage {
+    return WebviewToExtensionMessageSchema.parse(data);
 }

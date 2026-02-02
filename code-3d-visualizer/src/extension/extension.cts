@@ -9,7 +9,7 @@ import './extension-logger.cjs'; // Initialize extension-specific logger
 import { VisualizerWebviewProvider } from './webview-provider.cjs';
 import { FileParser } from './parser.cjs';
 import { VisualizerError } from '../common/errors.cjs';
-import { ExtensionToWebviewMessage } from '../common/contract.cjs';
+import { ExtensionToWebviewMessageSchema } from '../common/contract.cjs';
 import { WorkspaceManager } from './workspace-manager.cjs';
 import { taskTracker } from '../common/background-task-tracker.cjs';
 
@@ -55,7 +55,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
         const editor = vscode.window.activeTextEditor;
 
         if (!editor) {
-            // If no editor, just show the blank panel/scene
             return;
         }
 
@@ -63,14 +62,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
         try {
             await taskTracker.track("Show 3D View", (async () => {
                 const objects = await parser.parse(editor.document, cts.token);
-                const message: ExtensionToWebviewMessage = {
-                    type: "UPDATE_SCENE",
+
+                const payload = {
+                    type: "UPDATE_SCENE" as const,
                     payload: {
                         blocks: objects,
                         originFile: editor.document.fileName
                     }
                 };
 
+                // Validate against contract before sending
+                const message = ExtensionToWebviewMessageSchema.parse(payload);
                 panel.webview.postMessage(message);
             })());
 
@@ -89,7 +91,7 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
     const fullScanDisposable = vscode.commands.registerCommand('code-3d-visualizer.visualizeFullCodebase', async () => {
         logger.info("Command: Visualize Full Codebase");
         const panel = getOrCreatePanel();
-        await provider.webviewReadyPromise; // Await webview readiness
+        await provider.webviewReadyPromise;
         const cts = new vscode.CancellationTokenSource();
 
         await vscode.window.withProgress({
@@ -100,33 +102,35 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
             token.onCancellationRequested(() => cts.cancel());
 
             try {
-                await taskTracker.track("Full Codebase Visualization", (async () => {
-                    const objects = await workspaceManager.scanWorkspace(
-                        cts.token,
-                        progress,
-                        (messageText, increment, current, total) => {
-                            const progressMsg: ExtensionToWebviewMessage = {
-                                type: "PROGRESS",
-                                payload: {
-                                    message: messageText,
-                                    increment,
-                                    totalFiles: total,
-                                    currentFile: current
-                                }
-                            };
-                            panel.webview.postMessage(progressMsg);
-                        }
-                    );
-                    const message: ExtensionToWebviewMessage = {
-                        type: "UPDATE_SCENE",
-                        payload: {
-                            blocks: objects,
-                            originFile: "Full Workspace"
-                        }
-                    };
-                    provider.setLastObjectsCount(objects.length);
-                    panel.webview.postMessage(message);
-                })());
+                const objects = await workspaceManager.scanWorkspace(
+                    cts.token,
+                    progress,
+                    (messageText, increment, current, total) => {
+                        const progressPayload = {
+                            type: "PROGRESS" as const,
+                            payload: {
+                                message: messageText,
+                                increment,
+                                totalFiles: total,
+                                currentFile: current
+                            }
+                        };
+                        const msg = ExtensionToWebviewMessageSchema.parse(progressPayload);
+                        panel.webview.postMessage(msg);
+                    }
+                );
+
+                const updatePayload = {
+                    type: "UPDATE_SCENE" as const,
+                    payload: {
+                        blocks: objects,
+                        originFile: "Full Workspace"
+                    }
+                };
+                const message = ExtensionToWebviewMessageSchema.parse(updatePayload);
+
+                provider.setLastObjectsCount(objects.length);
+                panel.webview.postMessage(message);
             } catch (error: unknown) {
                 logger.error("Workspace scan failed", { error });
             }
@@ -135,7 +139,6 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
 
     context.subscriptions.push(fullScanDisposable);
 
-    // Auto-open 3D view on activation as requested
     taskTracker.track("Auto-visualization on startup", Promise.resolve(vscode.commands.executeCommand('code-3d-visualizer.visualizeFullCodebase'))).then(
         () => logger.info("Auto-visualization triggered"),
         (err: unknown) => logger.error("Failed to trigger auto-visualization", { error: err })

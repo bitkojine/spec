@@ -6,7 +6,7 @@ import { BoxGeometry, MeshBasicMaterial, Mesh } from 'three';
 import { SceneManager } from './scene-manager.mjs';
 import { InputManager } from './input-manager.mjs';
 import { VSCodeApi } from './types.mjs';
-import { ExtensionToWebviewMessage, Block } from '../common/contract.cjs';
+import { ExtensionToWebviewMessage, ExtensionToWebviewMessageSchema, Block } from '../common/contract.cjs';
 import { managedDelay } from '../common/utils.cjs';
 import { logger, setLogger } from '../common/logger.cjs';
 import { WebviewLogger } from './webview-logger.mjs';
@@ -65,7 +65,9 @@ function runVisualCheck() {
 
 window.addEventListener('message', async (event: MessageEvent<ExtensionToWebviewMessage>) => {
     try {
-        const message = event.data;
+        const rawMessage = event.data;
+        const message = ExtensionToWebviewMessageSchema.parse(rawMessage);
+
         const statusEl = document.getElementById('status');
         const progressBar = document.getElementById('progress-bar');
         const pContainer = document.getElementById('progress-container');

@@ -4,7 +4,7 @@
  */
 
 import { ILogger } from '../common/logger.cjs';
-import { Severity, WebviewToExtensionMessage } from '../common/contract.cjs';
+import { Severity, WebviewToExtensionMessageSchema } from '../common/contract.cjs';
 import { VSCodeApi } from './types.mjs';
 import { Option } from '../common/option.mjs';
 
@@ -18,8 +18,8 @@ export class WebviewLogger implements ILogger {
 
         // Post back to extension for centralized logging (Output Channel) if API is present
         this.vscode.forEach(api => {
-            const msg: WebviewToExtensionMessage = {
-                type: "LOG",
+            const rawMsg = {
+                type: "LOG" as const,
                 payload: {
                     level,
                     serviceId: "Webview",
@@ -29,6 +29,7 @@ export class WebviewLogger implements ILogger {
                     "@timestamp": timestamp
                 }
             };
+            const msg = WebviewToExtensionMessageSchema.parse(rawMsg);
             api.postMessage(msg);
         });
     }

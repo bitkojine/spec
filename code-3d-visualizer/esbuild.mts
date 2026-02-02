@@ -24,6 +24,7 @@ const resolveMjsJsToTs: esbuild.Plugin = {
         });
         // Resolve .js -> .ts (for project source files only, avoid node_modules)
         build.onResolve({ filter: /.*\.js$/ }, args => {
+            if (args.importer.includes('node_modules')) return undefined;
             if (args.path.startsWith('.') || args.path.startsWith('/')) {
                 const resolveDir = args.resolveDir || path.dirname(args.importer);
                 return { path: path.join(resolveDir, args.path.replace('.js', '.ts')) };
