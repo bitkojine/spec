@@ -1,62 +1,271 @@
 # Contract-First Interface Development
 
-## Background / Motivation
-The most common cause of systemic failure in distributed systems and large codebases is "Interface Drift"—when the implementation of a producer (API/Service) and the expectations of a consumer (Frontend/Client/Subsystem) diverge. Spec-driven development addresses this by making the "Contract" the primary artifact from which both implementation and verification flow.
+## (TypeScript-Native, AI-Enforceable Specification)
 
-- **Eliminate Integration Friction**: By defining boundaries before logic, we ensure that teams or components can be developed in parallel without constant synchronization.
-- **Automated Verification**: Contracts act as machine-readable schemas that allow for automated runtime validation and compile-time guarantees.
-- **Single Source of Truth**: The contract serves as the ultimate documentation, reducing ambiguity and "tribal knowledge" about how parts of the system interact.
-- **Reliable Mocking**: High-fidelity mocks can be automatically generated from contracts, ensuring that tests are valid and resilient to implementation changes.
+---
 
-## Rule Definition
-This codebase mandates a contract-first approach for all service boundaries and internal system interfaces:
-- **Pre-Implementation Definition**: No implementation logic shall be written until a formal, machine-readable contract is defined and reviewed.
-- **Mandatory Schema Usage**: Every boundary must use a formal schema definition language (e.g., OpenAPI, Protobuf, GraphQL, or a runtime validation schema).
-- **Prohibit Untyped Payloads**: All data crossing a boundary must be explicitly structured and validated. Using opaque, untyped containers at a boundary without a subsequent validation step is a violation.
-- **Versioning by Default**: Every breaking change to a contract must be accompanied by a version bump or a documented backward-compatible migration strategy.
-- **Strict Directionality**: Data must only flow through the interface as defined. Side channels or direct shared storage access by multiple disparate systems are prohibited.
+## Purpose
 
-## Standard Patterns
+Prevent interface drift by making **machine-readable contracts** the authoritative source of truth for all system boundaries.
 
-### Interface Hardening at the Boundary
-Use a formal validation layer to enforce the contract at the system boundaries. This ensures that the system "fails fast" at the edge if incoming or outgoing data does not match the agreed-upon contract.
+All implementation logic, validation, mocks, tests, and generated clients **MUST** be derived from contracts.
+This specification is explicitly designed to be **consumed, enforced, and executed by AI coding agents**.
 
-### Independent Specification
-The contract should be defined in a way that is decoupled from any specific implementation detail (e.g., database schema or internal object models). This allows the contract to evolve based on consumer needs rather than implementation artifacts.
+---
 
-## Examples
+## Canonical Tooling (Normative)
 
-### Incorrect Implementation (Code-First)
-Logic is written before the contract is solidified, leading to implicit types and "guesswork" at the boundary.
-```text
-// NO: Implementation defines the contract implicitly
-// Component A sends undocumented data to Component B.
-// Component B makes assumptions about the structure and types.
-// Result: System breaks when Component A changes a field name.
+The following tools are **MANDATORY** for TypeScript systems unless an explicit exception is approved:
+
+### Primary Contract Definition
+
+* **Zod** (or Valibot as an approved equivalent)
+
+> Zod schemas are the *contract artifact*.
+> TypeScript types are *derived outputs*, never the source.
+
+---
+
+### Contract-Derived Outputs (Required)
+
+From every contract, the following **MUST** be derivable:
+
+* Static TypeScript types (`z.infer`)
+* Runtime validators
+* Mock data generators
+* Test fixtures
+* (Optional) OpenAPI specifications
+
+---
+
+### Disallowed as Primary Contracts
+
+The following **MAY NOT** be used as boundary contracts:
+
+* TypeScript `interface` or `type` alone
+* JSON Schema without runtime validation
+* Untyped JSON payloads
+* Ad-hoc parsing logic
+
+---
+
+## Definitions
+
+### Contract
+
+A **contract** is a versioned Zod schema that defines:
+
+* Structure
+* Types
+* Constraints
+* Semantic intent (where required)
+
+Example:
+
+```ts
+export const UserV1 = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+});
 ```
 
-### Correct Implementation (Contract-First)
-The contract is defined as a standalone artifact that both producer and consumer reference and validate against.
-```text
-// YES: Contract is the source of truth
-// 1. Definition: Define the structured schema (e.g., User: {id: uuid, email: string})
-// 2. Validation: Both Producer and Consumer use the schema to validate payloads.
-// 3. Testing: Consumers use mocks generated directly from the schema.
+---
+
+### Boundary
+
+A boundary exists whenever data:
+
+* Crosses a **process or network boundary**
+* Crosses a **deployment boundary** (service, job, lambda)
+* Crosses an **ownership boundary** (team or domain)
+* Is **persisted and later consumed** by another component
+
+If a boundary exists, a contract **MUST** exist.
+
+---
+
+## Repository Layout (Required)
+
+Contracts must be discoverable and versioned explicitly:
+
+```
+/contracts
+  /user
+    v1.schema.ts
+    v2.schema.ts
+  /order
+    v1.schema.ts
 ```
 
-## Tooling & Enforcement
+Generated artifacts **MUST NOT** live in the same directory as contracts.
 
-### Schema Validation
-- All external input must be passed through a validation layer immediately upon entry.
-- Build scripts or CI should verify the consistency of the implementation against the source schema where possible.
+---
 
-### CI Expectations
-- **Contract Compatibility Check**: Changes that modify a contract must pass a compatibility check to detect breaking changes for downstream consumers.
-- **Synchronization Check**: CI will fail if the implementation or generated artifacts are out of sync with the primary schema definition.
+## Core Rules (Normative)
+
+### 1. Contract Before Implementation
+
+* No implementation logic may be written before a contract exists.
+* Generated code does **NOT** count as a contract.
+* The schema file is the **review and approval artifact**.
+
+**AI agents must refuse to implement features without a contract.**
+
+---
+
+### 2. Mandatory Runtime Validation
+
+All boundary data **MUST** be validated using the contract:
+
+* On ingress (inputs, requests, messages)
+* On egress (responses, emitted events)
+
+Validation must fail fast.
+
+Example:
+
+```ts
+UserV1.parse(input);
+```
+
+---
+
+### 3. No Untyped or Opaque Payloads
+
+The following are **FORBIDDEN** at boundaries:
+
+* `any`
+* `unknown`
+* `Record<string, any>`
+* Raw JSON objects
+
+All data must be:
+
+1. Parsed
+2. Validated
+3. Converted into a contract-defined type
+
+---
+
+### 4. Contract Independence
+
+Contracts must be:
+
+* Independent of database schemas
+* Independent of ORM or persistence models
+* Independent of internal domain objects
+
+Contracts describe **exchange**, not **implementation**.
+
+---
+
+### 5. Versioning Rules (Mechanical)
+
+Each contract **MUST** declare a version in its filename.
+
+Compatibility rules:
+
+* Field removal → **BREAKING**
+* Type change → **BREAKING**
+* Semantic change → **BREAKING**
+* Additive optional field → **NON-BREAKING**
+
+Breaking changes require:
+
+* A new versioned schema file
+  **OR**
+* A documented migration adapter
+
+---
+
+### 6. Directional Data Flow Only
+
+* Data may only cross boundaries through declared contracts.
+* Shared databases or side channels between systems are prohibited.
+* Every read/write path must reference a contract.
+
+---
+
+### 7. Contract Ownership Metadata
+
+Each contract must export metadata:
+
+```ts
+export const ContractMeta = {
+  owner: "identity-team",
+  consumers: ["billing", "frontend"],
+  stability: "stable",
+};
+```
+
+Unowned contracts are invalid.
+
+---
+
+## AI Agent Operational Rules
+
+AI coding agents **MUST**:
+
+1. Treat `/contracts/**` as the single source of truth
+2. Generate:
+
+   * Types
+   * Validators
+   * Mocks
+   * Tests
+     **only from schemas**
+3. Refuse to:
+
+   * Infer undocumented fields
+   * Extend payloads implicitly
+   * Introduce breaking changes without version bumps
+4. Fail generation if:
+
+   * Validation fails
+   * Compatibility checks fail
+   * Contracts are missing metadata
+
+---
+
+## CI Enforcement (Required)
+
+### Required Checks
+
+CI **MUST** enforce:
+
+* Schema validity
+* Contract versioning rules
+* Compatibility diffs between versions
+* Generated artifacts in sync with contracts
+* Runtime validation coverage at boundaries
+
+---
+
+## Mock & Test Generation (Required)
+
+* Mocks **MUST** be generated from schemas
+* Faker (`@faker-js/faker`) is the standard generator
+* Negative test cases must include invalid payloads
+
+---
+
+## Optional: OpenAPI Export (Recommended)
+
+If cross-language consumption is required:
+
+* Generate OpenAPI from Zod schemas
+* OpenAPI artifacts are **derived**, never authoritative
+
+---
 
 ## Non-Goals
-- **Over-Specification of Private Logic**: This rule applies to *boundaries* between systems or major components. Private, internal-only helper routines do not necessarily require a full formal schema but should still maintain clear internal contracts.
-- **Perfect Forecasting**: Contracts can and should evolve. The goal is not to get it "perfect" on day one, but to ensure that every boundary is always explicit, intentional, and documented.
 
-## Summary
-Contract-First Development is the primary defense against systemic fragility. By treating our interfaces as formal specifications rather than an afterthought of implementation, we build systems that are modular, testable, and robust. Every architectural change begins with a contract modification.
+* Internal helper functions without boundary crossings
+* Private implementation details
+* Perfect future prediction
+
+---
+
+## Governing Principle
+
+> **If it is not in the contract, it does not exist.**
