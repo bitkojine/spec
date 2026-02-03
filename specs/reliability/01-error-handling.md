@@ -1,61 +1,110 @@
 # Strict Error Handling & Fault Tolerance
 
-## Background / Motivation
-Unpredictable software behavior is rarely caused by a complete system crash; it is more often the result of improperly handled exceptions that leave the application in an inconsistent state. Robust engineering requires that every failure is anticipated, categorized, and handled with intention.
+## 1. Purpose
+Unpredictable software behavior is rarely caused by a complete system crash; it is more often the result of improperly handled exceptions that leave the application in an inconsistent state. This specification mandates a deterministic approach to error representation and handling to ensure the system remains observable and resilient.
 
-- **Eliminate Silent Failures**: Swallowing errors makes debugging impossible and hides systemic issues from monitoring tools.
-- **Categorized Remediation**: Not all errors are equal. Distinguishing between transient failures (retryable) and logic errors (fatal) is critical for system resilience.
-- **Observability**: Structured error handling ensures that telemetry and logs provide actionable context without requiring manual code inspection.
-- **User Trust**: Providing clear, safe, and actionable feedback during failures prevents user frustration and accidental data loss.
+## 2. Core Rule: No "Generic" Errors
+The use of the base `Error` class or string-only errors is **PROHIBITED** for domain-specific logic. All errors MUST be represented by an instance of `AppError` or its subclasses.
 
-## Rule Definition
-This codebase enforces a zero-tolerance policy for ad-hoc or negligent error handling:
-- **No Catch-All Swallowing**: Exception catch blocks must never be empty. Every caught error must be either rethrown, logged via the established logging standards, or handled with a documented fallback strategy.
-- **Mandatory Error Context**: Generic error types are prohibited for domain logic. Use specialized error representations that include machine-readable codes and relevant context.
-- **Categorize by Severity**: Errors must be explicitly categorized (e.g., as `RETRYABLE` for transient issues or `FATAL` for terminal logic errors).
-- **Boundary Protection**: All system entry points (API endpoints, UI handlers, background jobs) must have a protective boundary that prevents uncaught exceptions from crashing the process or freezing the interface.
-- **Sanitized Messages**: Error messages exposed to external users or systems must be sanitized to prevent leaking internal technical details (e.g., stack traces, database schemas, or system paths).
+## 3. Canonical Representation (Normative)
 
-## Standard Patterns
+All errors must comply with the following TypeScript structure:
 
-### Specialized Error Representations
-Define a clear hierarchy or categorization scheme to allow consumers to handle specific failure modes without resorting to text-based parsing.
+### 3.1. Error Severity
+Every error MUST be categorized into exactly one of these levels:
+*   `FATAL`: System-wide failure; process or major component must restart.
+*   `RETRYABLE`: Transient failure (e.g., network timeout); operation should be retried.
+*   `NON_RETRYABLE`: Logical failure (e.g., invalid input); operation will fail again if retried.
+*   `UI_ONLY`: Handled failure that only requires user notification, no system risk.
 
-### Purposeful Exception Handling
-Only handle exceptions that you can actually remediate. Otherwise, allow them to propagate to a higher-level boundary where they can be properly processed or logged.
+### 3.2. Code Structure
+Every error MUST have a unique, machine-readable string code in `SCREAMING_SNAKE_CASE`, prefixed by the component name.
+Example: `WORKSPACE_FILE_NOT_FOUND`, `PARSER_INVALID_SYNTAX`.
 
-## Examples
+### 3.3. Base Class Template
+This is the mandatory base implementation for all system errors:
 
-### Incorrect Implementation (Silent & Generic)
-The failure is lost, and the system is left in an unknown state with no indication of what went wrong or if it can be recovered.
-```text
-// NO: Silent failure and loss of context
-// try { execute_operation() } catch (error) { log("error") }
+```typescript
+export type ErrorSeverity = 'FATAL' | 'RETRYABLE' | 'NON_RETRYABLE' | 'UI_ONLY';
+
+export interface AppErrorOptions {
+  code: string;
+  severity: ErrorSeverity;
+  message: string;
+  context?: Record<string, unknown>;
+  cause?: Error;
+}
+
+export class AppError extends Error {
+  public readonly code: string;
+  public readonly severity: ErrorSeverity;
+  public readonly context: Record<string, unknown>;
+
+  constructor(options: AppErrorOptions) {
+    super(options.message);
+    this.name = this.constructor.name;
+    this.code = options.code;
+    this.severity = options.severity;
+    this.context = options.context ?? {};
+    this.cause = options.cause;
+    
+    // Ensure stack trace is correctly captured
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, this.constructor);
+    }
+  }
+}
 ```
 
-### Correct Implementation (Structured & Intentional)
-The error is enriched with specific context and a retryability hint, enabling automated recovery and precise monitoring.
-```text
-// YES: Intentional handling
-// 1. Catch the low-level failure.
-// 2. Wrap it in a domain-specific error with a machine-readable code (e.g., ERR_DB_TIMEOUT).
-// 3. Mark the error as RETRYABLE: TRUE.
-// 4. Log the structured error and rethrow or return it to the caller.
+## 4. Operational Rules (Normative)
+
+### 4.1. Catch-Block Requirements
+*   **FORBIDDEN**: Empty catch blocks.
+*   **REQUIRED**: Every caught error must be either:
+    1. Logged via the approved `Logger` interface.
+    2. Enriched and rethrown as an `AppError`.
+    3. Handled with a documented fallback (e.g., returning a default value).
+
+### 4.2. Boundary Protection
+All entry points (API handlers, Webview message listeners) MUST be wrapped in a top-level try-catch that:
+1. Maps uncaught exceptions to a `FATAL` or `NON_RETRYABLE` `AppError`.
+2. Sanitizes the message for the user.
+3. Logs the full trace and context.
+
+## 5. Examples
+
+### 5.1. Creating a Specialized Error
+```typescript
+class FileNotFoundError extends AppError {
+  constructor(filePath: string) {
+    super({
+      code: 'WORKSPACE_FILE_NOT_FOUND',
+      severity: 'NON_RETRYABLE',
+      message: `File not found at path: ${filePath}`,
+      context: { filePath }
+    });
+  }
+}
 ```
 
-## Tooling & Enforcement
+### 5.2. Handling and Wrapping
+```typescript
+try {
+  await fs.readFile(path);
+} catch (err) {
+  throw new FileNotFoundError(path); // Wrap low-level error in domain-specific AppError
+}
+```
 
-### Static Analysis
-- Enforce rules that prohibit empty catch blocks.
-- Enforce the use of domain-specific error types rather than generic system exceptions in core business logic.
+## 6. AI Agent Requirements
+AI coding agents **MUST**:
+1. Refuse to use `new Error("message")` or `throw "message"`.
+2. Auto-generate `AppError` subclasses for new failure modes identified during implementation.
+3. Ensure every catch block contains at least one call to `Logger.error()` or a `throw`.
 
-### CI Expectations
-- **Error Path Verification**: Critical business flows must include tests that specifically verify that failures are handled according to the specification.
-- **Diagnostic Validation**: Automated checks should verify that persistent error records contain sufficient metadata for diagnosis.
+## 7. CI Enforcement
+*   **Static Analysis**: ESLint MUST flag `new Error()` or `throw` statements that do not use `AppError`.
+*   **Traceability**: Build fails if any `AppError` instantiation lacks a `code` or `severity`.
 
-## Non-Goals
-- **Over-Catching**: Do not catch exceptions everywhere. Propagation is a valid and often preferred strategy as long as global boundaries exist.
-- **Hyperspecific Class Hierarchies**: Avoid creating hundreds of hyperspecific error types. A few well-defined categories with flexible metadata are more effective.
-
-## Summary
-Error handling is not an "alternative" flow; it is a core part of the system's logic. By standardizing how we fail, we ensure that our software remains predictable, maintainable, and observable even under stress. Every potential failure point must be addressed with intention.
+## 8. Summary
+By standardizing on `AppError` and explicit `ErrorSeverity`, we move error handling from "accidental" cleanup to a first-class citizen of the architecture. Every failure is now a data point for observability and a hook for automated recovery.
