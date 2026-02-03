@@ -19,7 +19,7 @@ export class FileParser {
 
             for (let i = 0; i < lines.length; i++) {
                 if (token.isCancellationRequested) {
-                    throw new VisualizerError("CANCELLATION_REQUESTED", "Parsing cancelled", true);
+                    throw new VisualizerError("CANCELLATION_REQUESTED", "Parsing cancelled", 'RETRYABLE');
                 }
 
                 // Yield to the event loop every 200 lines to keep UI responsive without unmanaged timers

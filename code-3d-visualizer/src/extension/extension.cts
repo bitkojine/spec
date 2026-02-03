@@ -8,7 +8,7 @@ import { logger } from '../common/logger.cjs';
 import './extension-logger.cjs'; // Initialize extension-specific logger
 import { VisualizerWebviewProvider } from './webview-provider.cjs';
 import { FileParser } from './parser.cjs';
-import { VisualizerError } from '../common/errors.cjs';
+import { VisualizerError, AppError } from '../common/errors.cjs';
 import { ExtensionToWebviewMessageSchema } from '../common/contract.cjs';
 import { WorkspaceManager } from './workspace-manager.cjs';
 import { taskTracker } from '../common/background-task-tracker.cjs';
@@ -43,7 +43,20 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
         }, undefined, context.subscriptions);
 
         currentPanel.webview.onDidReceiveMessage((data: unknown) => {
-            provider.handleWebviewMessage(data);
+            try {
+                provider.handleWebviewMessage(data);
+            } catch (error: unknown) {
+                const appError = error instanceof AppError ? error : new VisualizerError(
+                    "WEBVIEW_MESSAGE_INVALID",
+                    error instanceof Error ? error.message : "Invalid message from webview",
+                    'NON_RETRYABLE'
+                );
+                logger.error("Webview message handling failed", {
+                    error: appError.message,
+                    code: appError.code,
+                    severity: appError.severity
+                });
+            }
         }, undefined, context.subscriptions);
 
         currentPanel.webview.html = provider.getHtmlForWebview(currentPanel.webview);
@@ -78,12 +91,21 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
             })());
 
         } catch (error: unknown) {
-            if (error instanceof VisualizerError) {
-                if (error.code === "CANCELLATION_REQUESTED") return;
-                vscode.window.showErrorMessage(`Visualizer Error: ${error.message}`);
-            } else {
-                logger.error("Unexpected error", { error });
-            }
+            const appError = error instanceof AppError ? error : new VisualizerError(
+                "PARSING_FAILED",
+                error instanceof Error ? error.message : "Unexpected visualization error",
+                'NON_RETRYABLE'
+            );
+
+            if (appError.code === "CANCELLATION_REQUESTED") return;
+
+            logger.error("Command failed", {
+                command: 'show3DView',
+                error: appError.message,
+                code: appError.code,
+                severity: appError.severity
+            });
+            vscode.window.showErrorMessage(`Visualizer Error: ${appError.message}`);
         }
     });
 
@@ -133,7 +155,17 @@ export async function activate(context: vscode.ExtensionContext): Promise<{ prov
                 provider.setLastObjectsCount(objects.length);
                 panel.webview.postMessage(message);
             } catch (error: unknown) {
-                logger.error("Workspace scan failed", { error });
+                const appError = error instanceof AppError ? error : new VisualizerError(
+                    "PARSING_FAILED",
+                    error instanceof Error ? error.message : "Workspace scan failed",
+                    'NON_RETRYABLE'
+                );
+                logger.error("Workspace scan failed", {
+                    error: appError.message,
+                    code: appError.code,
+                    severity: appError.severity
+                });
+                vscode.window.showErrorMessage(`Scan Failed: ${appError.message}`);
             }
         });
     });

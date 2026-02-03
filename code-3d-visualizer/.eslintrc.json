@@ -58,6 +58,14 @@
             {
                 "selector": "TSNullKeyword",
                 "message": "Usage of null type is prohibited. Use undefined or the Option pattern instead. See specs/typescript/03-no-null.md"
+            },
+            {
+                "selector": "NewExpression[callee.name='Error']",
+                "message": "Use AppError or its subclasses instead of generic Error. See reliability/01-error-handling.md"
+            },
+            {
+                "selector": "ThrowStatement > Literal",
+                "message": "Do not throw strings. Use AppError or its subclasses instead. See reliability/01-error-handling.md"
             }
         ]
     },

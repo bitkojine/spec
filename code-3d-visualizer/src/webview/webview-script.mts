@@ -94,14 +94,19 @@ window.addEventListener('message', async (event: MessageEvent<ExtensionToWebview
         }
     } catch (error: unknown) {
         // Log to centralized logger (which now bridges to extension Output Channel)
-        logger.error("Webview Message Error", { error: error instanceof Error ? error.message : String(error) });
+        const message = error instanceof Error ? error.message : String(error);
+        logger.error("Webview Message Error", {
+            error: message,
+            type: "WEBVIEW_MESSAGE_INVALID",
+            severity: "NON_RETRYABLE"
+        });
 
-        if (vscode.type === 'some') {
-            vscode.value.postMessage({
+        vscode.forEach(api => {
+            api.postMessage({
                 type: "VISUAL_REPORT",
                 payload: { hasPixels: false }
             });
-        }
+        });
     }
 });
 

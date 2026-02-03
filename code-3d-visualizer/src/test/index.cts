@@ -5,6 +5,7 @@
 import * as path from 'path';
 import Mocha from 'mocha';
 import { glob } from 'glob';
+import { AppError } from '../common/errors.cjs';
 
 export async function run(): Promise<void> {
     // Create the mocha test
@@ -23,7 +24,11 @@ export async function run(): Promise<void> {
     return new Promise((c, e) => {
         mocha.run(failures => {
             if (failures > 0) {
-                e(new Error(`${failures} tests failed.`));
+                e(new AppError({
+                    code: "TESTS_FAILED",
+                    severity: "NON_RETRYABLE",
+                    message: `${failures} tests failed.`
+                }));
             } else {
                 c();
             }

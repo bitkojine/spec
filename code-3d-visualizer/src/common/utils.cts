@@ -4,6 +4,7 @@
  */
 
 import { taskTracker } from './background-task-tracker.cjs';
+import { VisualizerError } from './errors.cjs';
 
 /**
  * A managed delay that supports cancellation via AbortSignal.
@@ -16,7 +17,7 @@ import { taskTracker } from './background-task-tracker.cjs';
 export function managedDelay(ms: number, signal?: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
         if (signal?.aborted) {
-            return reject(new Error("Operation cancelled"));
+            return reject(new VisualizerError("CANCELLATION_REQUESTED", "Operation cancelled", "RETRYABLE"));
         }
 
         const timer = taskTracker.setTimeout(() => {
@@ -26,7 +27,7 @@ export function managedDelay(ms: number, signal?: AbortSignal): Promise<void> {
 
         const onAbort = () => {
             timer.cancel();
-            reject(new Error("Operation cancelled"));
+            reject(new VisualizerError("CANCELLATION_REQUESTED", "Operation cancelled", "RETRYABLE"));
             cleanup();
         };
 

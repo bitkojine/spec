@@ -9,6 +9,7 @@ import { FileParser } from './parser.cjs';
 import { Block } from '../common/contract.cjs';
 import { taskTracker } from '../common/background-task-tracker.cjs';
 import { PerformanceMetrics } from '../common/performance-metrics.cjs';
+import { VisualizerError, AppError } from '../common/errors.cjs';
 
 export class WorkspaceManager {
     private parser: FileParser;
@@ -84,7 +85,17 @@ export class WorkspaceManager {
                                 }
                             }));
                         } catch (error) {
-                            logger.error(`Failed to parse ${fileUri.fsPath}`, { error });
+                            const appError = error instanceof AppError ? error : new VisualizerError(
+                                "PARSING_FAILED",
+                                error instanceof Error ? error.message : "File parsing failed",
+                                'NON_RETRYABLE'
+                            );
+                            logger.error(`Failed to parse ${fileUri.fsPath}`, {
+                                error: appError.message,
+                                code: appError.code,
+                                severity: appError.severity,
+                                path: fileUri.fsPath
+                            });
                             // Return empty array on error, flattened later
                             return [] as Block[];
                         }
